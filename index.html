@@ -267,6 +267,22 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   .crow small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .bar i, .card { transition: none; } }
+.lo { display: none; } body.local .lo { display: inline-flex; }
+.sec-h .btn.lo { margin-left: auto; padding: 4px 9px; }
+.pl-a { display: inline-flex; align-items: center; gap: 6px; } .pl-a .btn, .lr .btn { padding: 3px 8px; font-size: 12px; }
+.ef { display: flex; flex-direction: column; gap: 12px; }
+.ef label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+.ef label.ck { flex-direction: row; align-items: center; gap: 8px; color: var(--text); }
+.ef input:not([type=checkbox]), .ef select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; font-size: 15px; color-scheme: dark; }
+.ef input:focus, .ef select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.ef-b { display: flex; gap: 8px; } .ef-b .btn { padding: 9px 16px; font-size: 14px; }
+.mu { display: flex; flex-direction: column; gap: 5px; } .mu-h { display: flex; justify-content: space-between; } .mu small { color: var(--muted); font-size: 12px; }
+.mu-r { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.dbars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 150px; align-items: end; }
+.db { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; height: 100%; }
+.db i { display: block; width: 100%; max-width: 34px; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--accent) 55%, var(--surface-2)); }
+.db.t i { background: var(--accent); } .db span { font-size: 12px; color: var(--muted); min-height: 14px; } .db small { font-size: 12px; color: var(--muted); } .db.t small { color: var(--text); font-weight: 600; }
+.s-models { order: 8; } .s-days { order: 9; }
 /* polish: same palette, calmer and less template-like */
 .chip, .btn, .pill, .bdg, .tab, .c-meta, .lineage, .sec-h > span, .hab-s, .sparkcap, .cchip, .lbl, .tile small, .ov-row > b, .mk > b, .tl-names, .live { font-family: var(--body); }
 .lbl, .tile small, .ov-row > b, .mk > b { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
@@ -342,11 +358,13 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
       </section>
     </div>
     <div class="col side">
-      <section class="block s-habits"><div class="sec-h"><h2>Routines</h2><span>things you repeat · tick them here on the laptop</span></div><div id="habits"></div></section>
+      <section class="block s-habits"><div class="sec-h"><h2>Routines</h2><span>things you repeat</span><button type="button" class="btn lo" data-ef="habit:new">Add routine</button></div><div id="habits"></div></section>
       <section class="block s-cache"><div class="sec-h"><h2>Cache, live</h2><span>last 12 hours</span></div><div id="crows" style="display:flex;flex-direction:column;gap:12px"></div>
         <div class="note">While a session is warm, continuing it is cheap. After the timer runs out the next message costs much more. Estimated from the time of the last reply.</div></section>
-      <section class="block s-dates"><div class="sec-h"><h2>Coming up</h2><span id="dates-s"></span></div><div id="dates"></div></section>
-      <section class="block s-pipes"><div class="sec-h"><h2>Pipelines</h2><span>where each thing has got to</span></div><div id="pipes" style="display:flex;flex-direction:column;gap:10px"></div></section>
+      <section class="block s-dates"><div class="sec-h"><h2>Coming up</h2><span id="dates-s"></span><button type="button" class="btn lo" data-ef="date:new">Add</button></div><div id="dates"></div></section>
+      <section class="block s-pipes"><div class="sec-h"><h2>Pipelines</h2><span>where each thing has got to</span><button type="button" class="btn lo" data-ef="pipe:new">Add pipeline</button></div><div id="pipes" style="display:flex;flex-direction:column;gap:10px"></div></section>
+      <section class="block s-models"><div class="sec-h"><h2>Model usage</h2><span>this week</span></div><div id="models"></div></section>
+      <section class="block s-days"><div class="sec-h"><h2>Week, day by day</h2><span id="days-s"></span></div><div id="days"></div></section>
     </div>
   </div>
   <p class="foot">Limits and cache timers are estimates worked out from Claude Code's own logs on this laptop, not official numbers.<br>Only times, folders and token counts are read. Never what was said.</p>
@@ -363,6 +381,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   window.addEventListener('unhandledrejection', function (ev) { showErr('Page error: ' + (ev.reason && ev.reason.message || ev.reason)); });
   var tabInit = false, ghf = 'all', ghq = '', showAll = false, S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  if (LOCAL) document.body.classList.add('local');
   var $ = function (id) { return document.getElementById(id); };
   var PAL = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9']; // fixed order, colour-blind checked
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -462,6 +481,25 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
       return '<a class="cr gh" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">' + (r.desc ? esc(r.desc) + ' · ' : '') + [r.lang, r.branches + (r.branches === 1 ? ' branch' : ' branches'), 'pushed ' + (r.pushed ? ago(Date.parse(r.pushed) / 1000) : '?'), r.project ? 'folder on laptop: ' + esc((r.path || '').replace(/\//g, '\\')) : 'not on this laptop'].filter(Boolean).join(' · ') + '</div></div><span class="bdg ' + (r.vis === 'private' ? 'warn' : 'synced') + '">' + (r.vis || '?') + '</span>' + (r.fork ? '<span class="bdg">fork</span>' : '') + (r.archived ? '<span class="bdg">archived</span>' : '') + '</a>';
     }).join('') || '<div class="empty">' + (all.length ? 'No repository matches.' : 'GitHub list not loaded yet.') + '</div>';
   }
+  function mname(x) { return x.replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+  function renderModels() {
+    var mu = S.modelUse || [], tot = mu.reduce(function (a, x) { return a + x.units; }, 0), L = S.limit || {}, real = (L.real && L.real.models) || [];
+    var h = mu.map(function (x) {
+      var p = tot ? x.units / tot * 100 : 0;
+      return '<div class="mu"><div class="mu-h"><span>' + esc(mname(x.model)) + '</span><b>' + Math.round(p) + '%</b></div><div class="bar"><i style="width:' + p + '%;background:var(--accent)"></i></div><small>' + x.replies + ' replies this week</small></div>';
+    }).join('') || '<div class="empty">No Claude replies yet this week.</div>';
+    if (real.length) h += '<div class="mu-r"><span class="lbl">Claude\'s own per-model limits (' + ago(L.real.at) + ')</span>' + real.map(function (x) { return '<div class="lr"><span>' + esc(x.name) + '</span><b>' + Math.round(x.pct) + '% used</b></div>'; }).join('') + '</div>';
+    h += '<div class="note">Bars = your share of this week\'s Claude work by model, counted from the logs on this laptop. The limits underneath are Claude\'s own numbers, copied when Claude last checked.</div>';
+    $('models').innerHTML = h;
+  }
+  function renderDays() {
+    var L = S.limit || {}, pd = L.perDay || [], sum = pd.reduce(function (a, x) { return a + x; }, 0), mx = Math.max.apply(null, pd.concat([1])), n = now();
+    $('days').innerHTML = '<div class="dbars">' + pd.map(function (v, i) {
+      var t = L.start + i * 86400, today = n >= t && n < t + 86400, pct = L.pct != null && sum ? v / sum * L.pct : null;
+      return '<div class="db' + (today ? ' t' : '') + '"><span>' + (pct == null ? '' : Math.round(pct) + '%') + '</span><i style="height:' + Math.max(3, v / mx * 100) + '%"></i><small>' + ist(t, { weekday: 'short' }) + '</small></div>';
+    }).join('') + '</div>';
+    $('days-s').textContent = L.pct != null ? 'about ' + Math.round(L.pct) + '% of the week used' : '';
+  }
   function renderTime() {
     var act = S.projects.filter(function (p) { return p.weekUnits > 0 && group(p); }).sort(function (a, b) { return b.weekUnits - a.weekUnits; });
     var sum = act.reduce(function (a, p) { return a + p.weekUnits; }, 0);
@@ -482,10 +520,10 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   }
   function dayLabel(back) { return ist(now() - back * 86400, { weekday: 'short', day: 'numeric', month: 'short' }); }
   function renderHabits() {
-    $('habits').innerHTML = (S.habits || []).map(function (h) {
+    $('habits').innerHTML = (S.habits || []).map(function (h, hi) {
       var cells = h.week.map(function (d, i) { return '<div>' + esc(d.wd.charAt(0)) + '<i class="' + (d.done ? 'y' : '') + (i === 6 ? ' t' : '') + '" title="' + esc(d.d) + '">' + (d.done ? '✓' : '') + '</i></div>'; }).join('');
       var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
-      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '</div>' : '';
+      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '<button type="button" class="btn ghost" data-ef="habit:' + hi + '">Edit</button></div>' : '';
       return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
     }).join('') || '<div class="empty">No routines set.</div>';
     $('habits').innerHTML += S.projects.filter(function (p) { return p.status === 'routine'; }).map(function (p) {
@@ -513,7 +551,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     }).join('') + '<div class="tl-names"><span>today</span><span>' + end + '</span></div></div>' : '';
     h += ds.map(function (d, i) {
       var big = d.active ? d.daysLeft + 'd' : d.daysTo + 'd', s = d.active ? 'left' : 'to start';
-      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div></div>';
+      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div><button type="button" class="btn ghost lo" style="margin-left:auto" data-ef="date:' + i + '">Edit</button></div>';
     }).join('');
     h += '<div class="cd"><div class="big" id="rs-big" style="color:var(--sky)"></div><div><div class="t">Claude weekly limit resets</div><div class="s">Every Tuesday, 7:30 PM</div></div></div>';
     $('dates').innerHTML = h;
@@ -521,14 +559,50 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   }
   function renderPipes() {
     var SC = ['#8d96ab', '#f5b84a', '#38bdf8', '#a3e635'];
-    $('pipes').innerHTML = (S.pipelines || []).map(function (p) {
+    $('pipes').innerHTML = (S.pipelines || []).map(function (p, pi) {
       var its = p.items || [];
-      return '<div class="pl-h"><span>' + esc(p.name) + '</span><span class="mono muted" style="font-size:11px;font-weight:400">' + its.length + ' in it</span></div><div class="strip">' + p.stages.map(function (s, i) {
+      return '<div class="pl-h"><span>' + esc(p.name) + '</span><span class="pl-a"><span class="muted" style="font-size:12px;font-weight:400">' + its.length + ' in it</span><button type="button" class="btn ghost lo" data-ef="item:' + pi + ':new">Add item</button><button type="button" class="btn ghost lo" data-ef="pipe:' + pi + '">Edit</button></span></div><div class="strip">' + p.stages.map(function (s, i) {
         return '<div style="--sc:' + SC[Math.min(3, i + (p.stages.length < 4 ? 1 : 0))] + '"><b>' + its.filter(function (x) { return x.stage === s; }).length + '</b><small>' + esc(s) + '</small></div>';
-      }).join('') + '</div>' + (its.length ? '<div>' + its.slice(0, 5).map(function (x) { return '<div class="lr"><span>' + esc(x.name) + '</span><span class="bdg">' + esc(x.stage) + '</span></div>'; }).join('') + '</div>'
-        : '<div class="note">Empty. Claude adds things here as they move along.</div>');
-    }).join('');
+      }).join('') + '</div>' + (its.length ? '<div>' + its.slice(0, 10).map(function (x, ii) { return '<div class="lr"><span>' + esc(x.name) + '</span><span><span class="bdg">' + esc(x.stage) + '</span> <button type="button" class="btn ghost lo" data-ef="item:' + pi + ':' + ii + '">Move</button></span></div>'; }).join('') + '</div>'
+        : '<div class="note">Nothing in it yet.' + (LOCAL ? ' Use Add item.' : '') + '</div>');
+    }).join('') || '<div class="empty">No pipelines yet.' + (LOCAL ? ' Use Add pipeline.' : '') + '</div>';
   }
+  /* ---------- edit forms (laptop only) ---------- */
+  function editForm(code) {
+    var c = code.split(':'), i = c[1], spec;
+    var T = function (k, l, v, o) { return Object.assign({ k: k, l: l, v: v || '', t: 'text' }, o || {}); };
+    if (c[0] === 'date') {
+      var d = i === 'new' ? {} : S.dates[+i];
+      spec = { title: i === 'new' ? 'Add to Coming up' : 'Edit date', verb: 'dateSave', extra: { old: d.name || '' }, f: [T('name', 'What is it', d.name, { ph: 'e.g. LinkedIn post, exam, deadline' }), T('start', 'Starts', d.start, { t: 'date' }), T('end', 'Ends (leave empty for one day)', d.end, { t: 'date' }), T('note', 'Note (optional)', d.note, { ph: 'e.g. Not registered yet' }), T('quiet', 'Claude keeps suggestions small during this', d.quiet, { t: 'check' })], del: i === 'new' ? null : { verb: 'dateDel', extra: { name: d.name } } };
+    } else if (c[0] === 'pipe') {
+      var p = i === 'new' ? { stages: [] } : S.pipelines[+i];
+      spec = { title: i === 'new' ? 'Add a pipeline' : 'Edit pipeline', verb: 'pipeSave', extra: { id: p.id || '' }, f: [T('name', 'Name', p.name, { ph: 'e.g. Lecture to phone' }), T('stages', 'Stages in order, separated by commas', p.stages.join(', '), { ph: 'recording, transcript, note, on phone' })], del: i === 'new' ? null : { verb: 'pipeDel', extra: { id: p.id } } };
+    } else if (c[0] === 'item') {
+      var pl = S.pipelines[+i], it = c[2] === 'new' ? {} : pl.items[+c[2]];
+      spec = { title: (c[2] === 'new' ? 'Add to ' : 'Move in ') + pl.name, verb: 'itemSave', extra: { pipe: pl.id, old: it.name || '' }, f: [T('name', 'Item', it.name, { ph: 'e.g. Lecture 12, DBMS' }), T('stage', 'Stage', it.stage || pl.stages[0], { t: 'select', o: pl.stages })], del: c[2] === 'new' ? null : { verb: 'itemDel', extra: { pipe: pl.id, name: it.name } } };
+    } else {
+      var hb = i === 'new' ? {} : S.habits[+i];
+      spec = { title: i === 'new' ? 'Add a routine' : 'Edit routine', verb: 'habitSave', extra: { id: hb.id || '' }, f: [T('name', 'Name', hb.name, { ph: 'e.g. Revise for 30 minutes' }), T('every', 'How often', hb.every || 'daily', { t: 'select', o: ['daily', 'weekdays', 'weekly'] })], del: i === 'new' ? null : { verb: 'habitDel', extra: { id: hb.id } } };
+    }
+    var f = spec.f.map(function (x) {
+      if (x.t === 'check') return '<label class="ck"><input type="checkbox" name="' + x.k + '"' + (x.v ? ' checked' : '') + '> ' + esc(x.l) + '</label>';
+      var inp = x.t === 'select' ? '<select name="' + x.k + '">' + x.o.map(function (o) { return '<option' + (o === x.v ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>' : '<input name="' + x.k + '" type="' + x.t + '" value="' + esc(x.v) + '" placeholder="' + esc(x.ph || '') + '" autocomplete="off">';
+      return '<label>' + esc(x.l) + inp + '</label>';
+    }).join('');
+    $('dbody').innerHTML = '<div class="d-h"><h3>' + esc(spec.title) + '</h3><button type="button" class="x" data-close aria-label="Close">×</button></div><form id="ef" class="ef" data-verb="' + spec.verb + '" data-extra=\'' + esc(JSON.stringify(spec.extra)) + '\'>' + f + '<div id="ef-err" class="bad"></div><div class="ef-b"><button type="submit" class="btn on">Save</button>' + (spec.del ? '<button type="button" class="btn" data-edel=\'' + esc(JSON.stringify(Object.assign({ verb: spec.del.verb }, spec.del.extra))) + '\'>Delete</button>' : '') + '</div></form>';
+    openKey = null;
+    if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); }
+    var first = $('dbody').querySelector('input,select'); if (first) first.focus();
+  }
+  function sendEdit(obj) {
+    return fetch('/api/edit', { method: 'POST', headers: { 'X-Hub': 'mark' }, body: JSON.stringify(obj) }).then(function (r) { return r.text().then(function (t) { if (!r.ok) throw new Error(t); }); });
+  }
+  document.addEventListener('submit', function (e) {
+    var f = e.target; if (f.id !== 'ef') return; e.preventDefault();
+    var o = Object.assign({ verb: f.dataset.verb }, JSON.parse(f.dataset.extra)); new FormData(f).forEach(function (v, k) { o[k] = v; });
+    f.querySelectorAll('input[type=checkbox]').forEach(function (c) { o[c.name] = c.checked; });
+    sendEdit(o).then(function () { $('dlg').close(); toast('Saved'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; });
+  });
   function renderOverview() {
     var alive = S.projects.filter(function (p) { return group(p) === 'alive'; }).slice(0, 3);
     var pipes = (S.pipelines || []).map(function (p) { var last = p.stages[p.stages.length - 1]; return esc(p.name.replace(/ to phone| loop/, '')) + ' <small>' + (p.items || []).filter(function (x) { return x.stage !== last; }).length + ' in progress</small>'; }).join(' · ');
@@ -583,8 +657,10 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
+    var t = e.target.closest('[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
+    if (t.dataset.ef) return editForm(t.dataset.ef);
+    if (t.dataset.edel) { if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Click again to delete'; return; } sendEdit(JSON.parse(t.dataset.edel)).then(function () { $('dlg').close(); toast('Deleted'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; }); return; }
     if (t.dataset.close !== undefined) return $('dlg').close();
     if (t.dataset.mark) { var grp = t.closest('.mk'); if (grp) { grp.querySelectorAll('.btn').forEach(function (x) { x.classList.remove('on'); }); t.classList.add('on'); } fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function () { toast('Could not save'); }); return; }
     if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
@@ -619,10 +695,10 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     $('g-week').innerHTML = gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', 'used');
     $('t-week').innerHTML = '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' +
       (L.pct == null ? '' : over ? '<span class="pill" style="color:var(--warm);align-self:flex-start">Using it fast</span>' : '<span class="pill" style="color:var(--good);align-self:flex-start">Safe pace</span>') +
-      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.checkedAt ? 'Matched ' + ago(L.checkedAt) + '.' : 'Rough guess.') + '</span>';
+      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? 'Claude\'s own last reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring adds what you used since.' : 'Rough guess.') + '</span>';
     // 5 hour
     var F = L.five;
-    if (F && F.active && F.resets > n) { $('g-five').innerHTML = gauge(F.pct, null, F.pct > 90 ? '#f87171' : F.pct > 70 ? '#f5b84a' : '#38bdf8', 'used'); $('t-five').innerHTML = '<span>Resets in <b>' + until(F.resets - n) + '</b></span><span class="sm">at ' + ist(F.resets, { hour: 'numeric', minute: '2-digit' }) + '</span>'; }
+    if (F && F.active && F.resets > n) { $('g-five').innerHTML = gauge(F.pct, null, F.pct > 90 ? '#f87171' : F.pct > 70 ? '#f5b84a' : '#38bdf8', 'used'); $('t-five').innerHTML = '<span>Resets in <b>' + until(F.resets - n) + '</b></span><span class="sm">at ' + ist(F.resets, { hour: 'numeric', minute: '2-digit' }) + '.' + (L.real && L.real.five != null ? ' Claude\'s own last reading: <b>' + Math.round(L.real.five) + '%</b>, ' + ago(L.real.at) + '.' : '') + '</span>'; }
     else if (F) { $('g-five').innerHTML = gauge(0, null, '#38bdf8', 'used'); $('t-five').innerHTML = '<span><b>Fresh</b></span><span class="sm">New 5 hours start with your next message.</span>'; }
     else { $('g-five').innerHTML = gauge(null, null, '#38bdf8', ''); $('t-five').innerHTML = '<span class="sm">Not known yet. Claude fills it in at session start.</span>'; }
     var rb = $('rs-big'); if (rb) rb.innerHTML = until(L.resets - n).split(' ')[0] + '<small>to reset</small>';
@@ -644,7 +720,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   }
 
   /* ---------- load ---------- */
-  function render() { renderOverview(); renderGh(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
+  function render() { renderOverview(); renderModels(); renderDays(); renderGh(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
   /* ---------- cloud copy (phone): encrypted snapshot on GitHub, decrypted here ---------- */
   var CLOUD = /github\.io$/.test(location.hostname), DATA_URL = 'https://raw.githubusercontent.com/Burthcer/command-center-view/data/data.enc.json';
   if (CLOUD) { var ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = 'manifest.webmanifest'; document.head.appendChild(ml); }
