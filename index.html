@@ -24,6 +24,9 @@
 [hidden] { display: none !important; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 15px; -webkit-text-size-adjust: 100%; }
 body { padding: 0 0 48px; }
+html { -webkit-tap-highlight-color: transparent; }
+button, .card, .cr, .tab, .btn, .hm-row, .ov-row, .chip { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+dialog:focus, .d-in:focus { outline: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
@@ -69,6 +72,16 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0; }
 .sec-h > span { font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .empty { font-size: 13.5px; color: var(--muted); padding: 10px 0; }
+
+/* at a glance (phone only) */
+.s-over { display: none; padding: 6px 12px; gap: 0; }
+.ov-row { display: grid; grid-template-columns: 84px 1fr 14px; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
+.ov-row:last-child { border-bottom: 0; }
+.ov-row > b { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.ov-row > span { font-size: 14px; line-height: 1.4; min-width: 0; }
+.ov-row > span small { color: var(--muted); font-size: 12px; }
+.ov-row > i { font-style: normal; color: var(--muted); }
+@media (max-width: 900px) { .s-over { display: block; } }
 
 /* project filter */
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -183,6 +196,9 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0; }
 
 /* detail dialog */
 dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 0; width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+html.lock, html.lock body { overflow: hidden; }
+dialog { overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 600px) { dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: 16px 16px 0 0; max-height: 92vh; } }
 dialog::backdrop { background: rgba(5, 7, 12, .7); }
 .d-in { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .d-h { display: flex; align-items: center; gap: 14px; }
@@ -270,6 +286,8 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     <div class="tile"><small>Cache · live</small><div class="bigtime" id="c-big">--:--</div><div class="bar"><i id="c-bar"></i></div><div class="note" id="c-txt"></div></div>
   </section>
 
+  <section class="block s-over" id="over" aria-label="At a glance"></section>
+
   <div class="cols">
     <div class="col">
       <section class="block s-proj">
@@ -304,7 +322,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function showErr(m) { var e = document.getElementById('err'); if (e) { e.style.display = 'block'; e.textContent = m; } }
   window.addEventListener('error', function (ev) { showErr('Page error: ' + ev.message + (ev.lineno ? ' (line ' + ev.lineno + ')' : '')); });
   window.addEventListener('unhandledrejection', function (ev) { showErr('Page error: ' + (ev.reason && ev.reason.message || ev.reason)); });
-  var S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
+  var showAll = false, S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var $ = function (id) { return document.getElementById(id); };
   var PAL = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9']; // fixed order, colour-blind checked
@@ -325,9 +343,9 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     if (p.status === 'gone') return { k: 'Folder gone', c: 'var(--idle)', p: 4 };
     if (p.status === 'waiting') return { k: 'Waiting', c: 'var(--teal)', p: 50 };
     var pct = Math.max(6, Math.round((1 - Math.min(p.age, 30) / 30) * 100));
-    if (p.warmth === 'hot') return { k: 'Hot', c: 'var(--hot)', p: pct };
-    if (p.warmth === 'warm') return { k: 'Warm', c: 'var(--warm)', p: pct };
-    return { k: 'Cold', c: 'var(--cold)', p: pct };
+    if (p.age === 0) return { k: 'Hot', c: 'var(--hot)', p: pct };       // touched today
+    if (p.age <= 3) return { k: 'Warm', c: 'var(--warm)', p: pct };      // last 3 days
+    return { k: 'Cool', c: 'var(--cold)', p: pct };
   }
   function dtext(p) { return p.status === 'done' ? '✓' : p.status === 'abandoned' || p.status === 'gone' ? '✕' : p.age > 999 ? '–' : p.age === 0 ? 'today' : p.age + 'd'; }
   function ring(p, sm) { var h = heat(p); return '<div class="ring' + (sm ? ' sm' : '') + '" style="--p:' + h.p + '%;--hc:' + h.c + '"><b>' + dtext(p) + '</b></div>'; }
@@ -380,7 +398,10 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     if (tab === 'gh') h = '<div class="rows">' + (S.githubOnly || []).map(function (r) {
       return '<a class="cr" style="text-decoration:none" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">last pushed ' + esc((r.pushed || '').slice(0, 10)) + ' · not on this laptop</div></div><span class="bdg">GitHub ↗</span></a>';
     }).join('') + '</div>';
-    else if (tab === 'alive') h = '<div class="grid">' + g.alive.map(card).join('') + '</div>';
+    else if (tab === 'alive') {
+      var small = window.matchMedia('(max-width: 900px)').matches, list = small && !showAll ? g.alive.slice(0, 5) : g.alive;
+      h = '<div class="grid">' + list.map(card).join('') + '</div>' + (small && g.alive.length > 5 ? '<button type="button" class="btn" data-more style="align-self:center;margin-top:10px;padding:10px 16px">' + (showAll ? 'Show fewer' : 'Show all ' + g.alive.length + ' (older ones)') + '</button>' : '');
+    }
     else h = '<div class="rows">' + g[tab].map(crow).join('') + '</div>';
     var note = { dead: 'Claude never suggests these.', done: 'Finished. Claude only suggests small fixes here if you ask.', misc: 'One-time folders. Kept out of the way.', cold: 'Not touched in over two weeks. Claude may suggest waking one up.' }[tab];
     $('plist').innerHTML = (n(tab) ? h : '<div class="empty">Nothing here.</div>') + (note ? '<div class="note" style="margin-top:10px">' + note + '</div>' : '');
@@ -441,6 +462,17 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
         : '<div class="note">Empty. Claude adds things here as they move along.</div>');
     }).join('');
   }
+  function renderOverview() {
+    var alive = S.projects.filter(function (p) { return group(p) === 'alive'; }).slice(0, 3);
+    var pipes = (S.pipelines || []).map(function (p) { var last = p.stages[p.stages.length - 1]; return esc(p.name.replace(/ to phone| loop/, '')) + ' <small>' + (p.items || []).filter(function (x) { return x.stage !== last; }).length + ' in progress</small>'; }).join(' · ');
+    var hab = (S.habits || []).filter(function (h) { return h.due; }), hd = hab.filter(function (h) { return h.done; }).length;
+    var ds = (S.dates || []).slice(0, 2).map(function (d) { return esc(d.name) + ' <small>' + (d.active ? d.daysLeft + 'd left' : 'in ' + d.daysTo + 'd') + '</small>'; });
+    var L = S.limit || {}; ds.push('Limit resets <small>in ' + until(L.resets - now()).split(' ')[0] + '</small>');
+    var row = function (go, k, v) { return '<div class="ov-row" data-go="' + go + '"><b>' + k + '</b><span>' + v + '</span><i>›</i></div>'; };
+    $('over').innerHTML = row('s-habits', 'Today', hd + ' of ' + hab.length + ' habits done') +
+      row('s-proj', 'Projects', alive.map(function (p) { return esc(p.name.replace(/ \(.*\)/, '')) + ' <small>' + (p.age === 0 ? 'today' : p.age + 'd') + '</small>'; }).join(' · ') || 'Nothing active') +
+      row('s-pipes', 'Pipelines', pipes || 'None') + row('s-dates', 'Coming up', ds.join(' · '));
+  }
   function renderPick() {
     var s = S.suggest || {}, ex = (S.dates || []).filter(function (d) { return d.quiet; })[0], why = s.by === 'claude' ? 'Set by Claude ' + (s.at ? s.at.slice(0, 10) : '') + '.' : 'Most recently touched working project.';
     if (ex) why += ex.active ? ' Exams are on, so only small tasks.' : ' ' + ex.name + ' start in ' + ex.daysTo + ' days, so keep sessions short.';
@@ -471,16 +503,18 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     b += '<div class="row"><b>Activity</b><div><span>Last Claude session: ' + ago(p.lastSession) + '</span><span>Last git commit: ' + ago(p.lastCommit) + '</span></div></div>';
     b += '<div class="row"><b>Claude</b><div>' + (suggestable ? 'Can suggest this' : 'Will not suggest this') + '</div></div></div>';
     $('dbody').innerHTML = b;
-    if (!$('dlg').open) $('dlg').showModal();
+    if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); $('dlg').focus(); }
     tick();
   }
-  $('dlg').addEventListener('close', function () { openKey = null; });
+  $('dlg').addEventListener('close', function () { openKey = null; document.documentElement.classList.remove('lock'); });
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-open],[data-close],[data-tab],a,[data-key]');
+    var t = e.target.closest('[data-open],[data-close],[data-tab],[data-more],[data-go],a,[data-key]');
     if (!t || t.tagName === 'A') return;
     if (t.dataset.close !== undefined) return $('dlg').close();
+    if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
+    if (t.dataset.go) { var el = document.querySelector('.' + t.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.dataset.tab) { tab = t.dataset.tab; renderProjects(); tick(); return; }
     if (t.dataset.open) {
       fetch('/api/open?' + encodeURIComponent(t.dataset.open) + '&' + t.dataset.i, { method: 'POST', headers: { 'X-Hub': 'open' } })
@@ -523,7 +557,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
       var rem = c0.expires - n, col = rem < c0.ttl * .25 ? 'var(--warm)' : 'var(--good)';
       $('c-big').textContent = clock(rem); $('c-big').style.color = col;
       $('c-bar').style.width = rem / c0.ttl * 100 + '%'; $('c-bar').style.background = col;
-      $('c-txt').innerHTML = '<b style="color:var(--text)">' + esc(c0.project) + '</b> stays cheap to continue until then. ' + warm.length + ' of ' + S.cache.length + ' recent sessions warm.';
+      $('c-txt').innerHTML = '<b style="color:var(--text)">' + esc(c0.project) + '</b> · last reply ' + ago(c0.last) + ', cheap to continue until ' + ist(c0.expires, { hour: 'numeric', minute: '2-digit' }) + '. ' + warm.length + ' of ' + S.cache.length + ' recent sessions warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be ~10 min behind.</span>' : '');
     } else { $('c-big').textContent = 'cold'; $('c-big').style.color = 'var(--idle)'; $('c-bar').style.width = '0'; $('c-txt').textContent = 'No warm session. The next message in any session pays full price once.'; }
     document.querySelectorAll('[data-exp]').forEach(function (e) {
       var rem = e.dataset.exp - n, cool = rem < e.dataset.ttl * .25;
@@ -534,7 +568,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   }
 
   /* ---------- load ---------- */
-  function render() { renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
+  function render() { renderOverview(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
   /* ---------- cloud copy (phone): encrypted snapshot on GitHub, decrypted here ---------- */
   var CLOUD = /github\.io$/.test(location.hostname), DATA_URL = 'https://raw.githubusercontent.com/Burthcer/command-center-view/data/data.enc.json';
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (x) {} }
@@ -602,7 +636,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
           '<div class="row"><b>Link</b><div><code style="font-family:var(--mono);font-size:12px;overflow-wrap:anywhere">' + esc(d.url) + '</code><button type="button" class="btn" style="align-self:flex-start" id="cp1">Copy link</button></div></div>' +
           '<div class="row"><b>Passphrase</b><div><code style="font-family:var(--mono);font-size:15px">' + esc(d.pass) + '</code><button type="button" class="btn" style="align-self:flex-start" id="cp2">Copy passphrase</button></div></div>' +
           '<div class="note">The laptop sends an encrypted copy to GitHub about every 10 minutes while it is on (only when something changed). Without the passphrase it is unreadable.</div>';
-        $('dlg').showModal();
+        document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').focus();
         [['cp1', d.url], ['cp2', d.pass]].forEach(function (x) { $(x[0]).addEventListener('click', function () { (navigator.clipboard ? navigator.clipboard.writeText(x[1]) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Copy failed, select the text instead'); }); }); });
       }).catch(function () { toast('Could not get the link'); });
     });
