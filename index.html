@@ -85,6 +85,7 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0; }
 .c-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .name { font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .c-sub { font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+.c-sub:empty { display: none; }
 .bad { color: var(--bad); }
 .pill { font-family: var(--mono); font-size: 10.5px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; flex: none; }
 .ring { --p: 50%; --hc: var(--cold); position: relative; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--hc) var(--p), var(--line) 0); }
@@ -335,7 +336,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     if (p.broken) return '<span class="bad">Broken: ' + esc(p.broken) + '</span>';
     if (p.next) return 'Next: ' + esc(p.next);
     if (p.now) return esc(p.now);
-    return esc(p.reason || '');
+    return /^(touched|untouched)/.test(p.reason || '') ? '' : esc(p.reason || '');   // already shown as 'touched X ago'
   }
   function spark(a, c) {
     var m = Math.max.apply(null, a.concat([1])), step = 210 / (a.length - 1);
@@ -492,8 +493,8 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   /* ---------- live (every second) ---------- */
   function gauge(pct, mark, col, sub) {
     var r = 36, C = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0)), a = (mark || 0) / 100 * 2 * Math.PI;
-    // the marker sits OUTSIDE the ring so it can never cross the number
-    var m = mark == null ? '' : '<line x1="' + (50 + 43 * Math.sin(a)) + '" y1="' + (50 - 43 * Math.cos(a)) + '" x2="' + (50 + 49 * Math.sin(a)) + '" y2="' + (50 - 49 * Math.cos(a)) + '" stroke="#e8ebf3" stroke-width="3" stroke-linecap="round"><title>how much of the week has passed</title></line>';
+    // the tick spans only the ring's edge (radius 31 to 46); the number lives inside radius 22, so they cannot touch
+    var m = mark == null ? '' : '<line x1="' + (50 + 31 * Math.sin(a)) + '" y1="' + (50 - 31 * Math.cos(a)) + '" x2="' + (50 + 46 * Math.sin(a)) + '" y2="' + (50 - 46 * Math.cos(a)) + '" stroke="#e8ebf3" stroke-width="3" stroke-linecap="round"><title>how much of the week has passed</title></line>';
     return '<svg viewBox="0 0 100 100" role="img" aria-label="' + (pct == null ? 'unknown' : Math.round(pct) + ' percent') + '"><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="#262d3d" stroke-width="8"/><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (v / 100 * C) + ' ' + C + '" transform="rotate(-90 50 50)"/>' + m +
       '<text x="50" y="55" text-anchor="middle" class="gnum">' + (pct == null ? '?' : Math.round(pct) + '%') + '</text><text x="50" y="68" text-anchor="middle" class="gsub">' + sub + '</text></svg>';
   }
