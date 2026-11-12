@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1017">
+<link rel="icon" href="icon.svg">
+<title>Command Center (new look)</title>
+<style>
+/* v3. Built on Dev's own mock (design-reference.html): same colours, rings, sparklines, pills.
+   Laptop: glance row, then Projects (wide) beside Today / Cache / Dates / Pipelines. Phone: one column. */
+:root {
+  color-scheme: dark;
+  --bg: #0d1017; --surface: #151a24; --surface-2: #1d2331; --line: #262d3d;
+  --text: #e8ebf3; --muted: #8d96ab;
+  --hot: #ff7a45; --warm: #f5b84a; --cold: #5b8def; --good: #a3e635; --bad: #f87171; --idle: #8d96ab;
+  --accent: #8b7cff; --sky: #38bdf8; --teal: #2dd4bf;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); font-size: 15px; -webkit-text-size-adjust: 100%; }
+body { padding: 0 0 48px; }
+html { -webkit-tap-highlight-color: transparent; }
+button, .card, .cr, .tab, .btn, .hm-row, .ov-row, .chip { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+dialog:focus, .d-in:focus { outline: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.wrap { max-width: 1480px; margin: 0 auto; padding: 20px 24px 0; display: flex; flex-direction: column; gap: 18px; }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+
+/* top bar */
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spacing: -0.01em; margin: 0; line-height: 1.1; }
+.date { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 5px; }
+.top-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; white-space: nowrap; }
+.chip b { color: var(--text); font-weight: 500; }
+#stop { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+#stop:hover { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+#err { display: none; background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border: 1px solid var(--bad); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+
+/* glance row */
+.glance { display: grid; grid-template-columns: 3fr 2.6fr 2.2fr 4.6fr; gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
+.tile small, .lbl { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+.pick { border-left: 3px solid var(--hot); display: flex; flex-direction: column; gap: 6px; }
+.pick b { font-family: var(--display); font-size: 24px; line-height: 1.2; }
+.pick span { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.gauge { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.gauge svg { flex: none; width: 92px; height: 92px; display: block; }
+.gauge .g-txt { min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); line-height: 1.35; }
+.gauge .g-txt b { color: var(--text); font-weight: 600; }
+.g-txt .sm { font-size: 11.5px; line-height: 1.35; }
+.gnum { font-family: var(--display); font-weight: 700; font-size: 19px; fill: var(--text); }
+.gsub { font-family: var(--mono); font-size: 7.5px; fill: var(--muted); }
+.bigtime { font-family: var(--mono); font-size: 38px; font-weight: 500; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; background: var(--surface-2); border-radius: 8px; overflow: hidden; margin: 8px 0; }
+.bar i { display: block; height: 100%; border-radius: 8px; transition: width 1s linear; }
+
+/* layout */
+.cols { display: grid; grid-template-columns: minmax(0, 1.9fr) minmax(320px, 1fr); gap: 18px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.block { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+h2 { font-family: var(--display); font-size: 19px; margin: 0; }
+.sec-h > span { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.empty { font-size: 13.5px; color: var(--muted); padding: 10px 0; }
+
+.hab { flex-wrap: wrap; } .hab-b { display: flex; gap: 6px; width: 100%; padding-top: 6px; }
+.hab-b .btn { padding: 5px 10px; font-size: 12px; }
+.mk { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .mk > b { font: 500 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); min-width: 52px; }
+.mk .btn.on { outline: 2px solid var(--accent, #8b7cff); }
+.live { display: inline-flex; gap: 5px; align-items: center; color: var(--good); font: 500 11px var(--mono); } .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--good); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+/* at a glance (phone only) */
+.s-over { display: none; padding: 6px 12px; gap: 0; }
+.ov-row { display: grid; grid-template-columns: 84px 1fr 14px; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
+.ov-row:last-child { border-bottom: 0; }
+.ov-row > b { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.ov-row > span { font-size: 14px; line-height: 1.4; min-width: 0; }
+.ov-row > span small { color: var(--muted); font-size: 12px; }
+.ov-row > i { font-style: normal; color: var(--muted); }
+@media (max-width: 900px) { .s-over { display: block; } }
+
+/* project filter */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); }
+.tab b { font-family: var(--mono); font-weight: 400; font-size: 11px; margin-left: 6px; opacity: .8; }
+.tab[aria-pressed="true"] { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 20%, var(--surface)); }
+
+/* project cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.card { background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--edge, var(--accent)); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; min-width: 0; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--edge, var(--accent)); transform: translateY(-1px); }
+.pc-top { display: flex; gap: 12px; align-items: center; }
+.pc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.c-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.name { font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-sub { font-size: 13.5px; color: var(--muted); line-height: 1.35; }
+.c-sub:empty { display: none; }
+.bad { color: var(--bad); }
+.pill { font-family: var(--mono); font-size: 10.5px; padding: 3px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; flex: none; }
+.ring { --p: 50%; --hc: var(--cold); position: relative; flex: none; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--hc) var(--p), var(--line) 0); }
+.ring::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface-2); }
+.ring b { position: relative; font-family: var(--mono); font-size: 10.5px; font-weight: 500; }
+.ring.sm { width: 38px; height: 38px; } .ring.sm::before { inset: 4px; } .ring.sm b { font-size: 9.5px; }
+.spark { width: 100%; height: 40px; display: block; }
+.sparkcap { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: -6px; }
+.c-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.bdg { font-family: var(--mono); font-size: 10.5px; padding: 3px 7px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.bdg.synced { color: var(--good); } .bdg.ahead, .bdg.dirty, .bdg.warn { color: var(--warm); } .bdg.behind, .bdg.missing { color: var(--bad); }
+.cchip { font-family: var(--mono); font-size: 11px; display: inline-flex; align-items: center; gap: 5px; margin-left: auto; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--idle); display: inline-block; flex: none; }
+.w { color: var(--good); } .w .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
+.c { color: var(--warm); } .c .dot { background: var(--warm); }
+.k { color: var(--idle); }
+.acts { display: flex; gap: 6px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 10px; margin-top: auto; }
+.btn { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--text); background: var(--surface); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.ghost { color: var(--muted); }
+/* compact rows (cold, done, graveyard, one-offs) */
+.rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 8px; }
+.cr { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--edge, var(--line)); border-radius: 12px; cursor: pointer; min-width: 0; }
+.cr:hover { border-color: var(--edge, var(--accent)); }
+.cr .mid { flex: 1; min-width: 0; }
+.cr.dead { border-left-style: dashed; }
+.cr.dead .name { text-decoration: line-through; color: var(--muted); }
+.lineage { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.lineage b { color: var(--hot); font-weight: 500; }
+
+/* time */
+.share { display: flex; height: 12px; gap: 2px; }
+.share i { display: block; min-width: 4px; border-radius: 3px; }
+.share-leg { display: flex; flex-wrap: wrap; gap: 5px 14px; font-size: 12.5px; color: var(--muted); }
+.share-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.share-leg i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.share-leg b { color: var(--text); font-weight: 500; }
+.hm { display: flex; flex-direction: column; gap: 5px; }
+.hm-row { width: 100%; display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: center; }
+.hm-row:hover .hm-name { text-decoration: underline; }
+.hm-name { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-cells { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.hm-cells i { display: block; height: 18px; border-radius: 3px; background: var(--surface-2); }
+.hm-cells i.l1 { background: color-mix(in srgb, var(--accent) 30%, var(--surface-2)); }
+.hm-cells i.l2 { background: color-mix(in srgb, var(--accent) 52%, var(--surface-2)); }
+.hm-cells i.l3 { background: color-mix(in srgb, var(--accent) 76%, var(--surface-2)); }
+.hm-cells i.l4 { background: var(--accent); }
+.hm-cells i.td { outline: 1.5px solid var(--text); }
+.hm-axis { display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.hm-axis div { display: flex; justify-content: space-between; }
+
+/* habits */
+.hab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+.hab:last-of-type { border-bottom: 0; }
+.hab-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bx { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--muted); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex: none; }
+.hab.on .bx { background: var(--sky); border-color: var(--sky); color: #0d1017; }
+.hab.off .bx { border-style: dashed; opacity: .5; }
+.hab-n { font-weight: 600; font-size: 15px; }
+.hab-s { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.week { display: grid; grid-template-columns: repeat(7, 24px); gap: 4px; }
+.week div { text-align: center; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.week i { display: block; height: 20px; margin-top: 3px; border-radius: 6px; background: var(--surface-2); font-style: normal; line-height: 20px; font-size: 11px; color: #0d1017; }
+.week i.y { background: var(--sky); }
+.week i.t { outline: 1.5px solid var(--text); outline-offset: 1px; }
+
+/* cache rows */
+.crow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 96px; align-items: center; gap: 10px; font-size: 13.5px; }
+.crow > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crow small { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-left: 6px; }
+.crow .bar { margin: 0; }
+.ctime { font-family: var(--mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* dates */
+.tl { position: relative; background: var(--surface-2); border-radius: 12px; padding: 12px 12px 8px; }
+.tl-row { margin-bottom: 8px; }
+.tl-track { position: relative; height: 14px; background: var(--surface); border-radius: 6px; }
+.tl-track i { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+.tl-names { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.cd { display: flex; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.cd:last-child { border-bottom: 0; }
+.cd .big { min-width: 62px; text-align: center; font-family: var(--display); font-weight: 700; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cd .big small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10px; color: var(--muted); margin-top: 4px; text-transform: uppercase; }
+.cd .t { font-weight: 600; font-size: 15px; }
+.cd .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* pipelines */
+.strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.strip div { background: var(--surface-2); border: 1px solid var(--line); border-top: 3px solid var(--sc); border-radius: 10px; padding: 8px 4px 9px; text-align: center; min-width: 0; }
+.strip b { display: block; font-family: var(--display); font-size: 22px; line-height: 1.1; }
+.strip small { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pl-h { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; margin-top: 4px; }
+.lr { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.lr:last-child { border-bottom: 0; }
+
+/* detail dialog */
+dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 0; width: min(720px, calc(100vw - 24px)); max-height: calc(100vh - 32px); }
+html.lock, html.lock body { overflow: hidden; }
+dialog { overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 600px) { dialog { width: 100%; max-width: none; margin: auto 0 0; border-radius: 16px 16px 0 0; max-height: 92vh; } }
+dialog::backdrop { background: rgba(5, 7, 12, .7); }
+.d-in { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.d-h { display: flex; align-items: center; gap: 14px; }
+.d-h h3 { font-family: var(--display); font-size: 24px; margin: 0; flex: 1; min-width: 0; }
+.x { font-size: 20px; color: var(--muted); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 84px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 14px; line-height: 1.45; }
+.row:last-child { border-bottom: 0; }
+.row > b { font-family: var(--mono); font-weight: 500; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding-top: 3px; }
+.row > div { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.stats div { background: var(--surface-2); border-radius: 10px; padding: 10px; }
+.stats b { display: block; font-family: var(--display); font-size: 20px; margin-top: 2px; }
+.bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; height: 90px; }
+.bars div { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.bars i { display: block; border-radius: 4px 4px 0 0; background: var(--accent); min-height: 2px; }
+.bars i.z { background: var(--line); }
+.bars-x { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; font-family: var(--mono); font-size: 9.5px; color: var(--muted); text-align: center; margin-top: 4px; }
+.path { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.path code { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; font-size: 13.5px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 50; }
+#toast.on { opacity: 1; }
+.foot { text-align: center; font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; padding: 4px 16px 0; }
+
+@media (max-width: 1100px) { .glance { grid-template-columns: 1fr 1fr; } .pick { grid-column: 1 / -1; } }
+@media (max-width: 900px) {
+  .wrap { padding: 12px 12px 0; gap: 12px; }
+  .cols { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+  .col { display: contents; }               /* lets every section be ordered on its own */
+  .s-habits { order: 1; } .s-proj { order: 2; } .s-dates { order: 3; } .s-time { order: 4; } .s-cache { order: 5; } .s-pipes { order: 6; }
+  .block { padding: 14px 12px; gap: 10px; }
+  h2 { font-size: 17px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .hm-row, .hm-axis { grid-template-columns: 96px 1fr; }
+  .rows, .grid { grid-template-columns: 1fr; gap: 8px; }
+  .card { padding: 12px; gap: 8px; }
+  .card .spark, .card .sparkcap { display: none; }  /* graph lives in the details view on a phone */
+  .sec-h .tabs { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; width: calc(100% + 24px); }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { white-space: nowrap; flex: none; }
+  .note { font-size: 12px; }
+}
+@media (max-width: 600px) {
+  h1 { font-size: 23px; }
+  .glance { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pick, .glance .tile:last-child { grid-column: 1 / -1; }
+  .tile { padding: 12px; }
+  .pick b { font-size: 20px; }
+  .pick span { font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .gauge { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .gauge svg { width: 84px; height: 84px; }
+  .bigtime { font-size: 30px; margin-top: 2px; }
+  .glance .tile:last-child { display: grid; grid-template-columns: auto 1fr; column-gap: 14px; align-items: center; }
+  .glance .tile:last-child small { grid-column: 1 / -1; }
+  .glance .tile:last-child .bar { grid-column: 1 / -1; margin: 6px 0 2px; }
+  .glance .tile:last-child .note { grid-column: 1 / -1; }
+  .hab-s { display: none; }
+  .hab { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cd .big { font-size: 24px; min-width: 52px; }
+  .strip b { font-size: 18px; }
+  .crow { grid-template-columns: minmax(0, 1fr) 64px 78px; gap: 8px; }
+  .crow small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bar i, .card { transition: none; } }
+.lo { display: none; } body.local .lo { display: inline-flex; }
+.sec-h .btn.lo { margin-left: auto; padding: 4px 9px; }
+.pl-a { display: inline-flex; align-items: center; gap: 6px; } .pl-a .btn, .lr .btn { padding: 3px 8px; font-size: 12px; }
+.ef { display: flex; flex-direction: column; gap: 12px; }
+.ef label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+.ef label.ck { flex-direction: row; align-items: center; gap: 8px; color: var(--text); }
+.ef input:not([type=checkbox]), .ef select { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; font-size: 15px; color-scheme: dark; }
+.ef input:focus, .ef select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.ef-b { display: flex; gap: 8px; } .ef-b .btn { padding: 9px 16px; font-size: 14px; }
+.mu { display: flex; flex-direction: column; gap: 5px; } .mu-h { display: flex; justify-content: space-between; } .mu small { color: var(--muted); font-size: 12px; }
+.mu-r { margin-top: 6px; border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.dbars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 150px; align-items: end; }
+.db { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; height: 100%; }
+.db i { display: block; width: 100%; max-width: 34px; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--accent) 55%, var(--surface-2)); }
+.db.t i { background: var(--accent); } .db span { font-size: 12px; color: var(--muted); min-height: 14px; } .db small { font-size: 12px; color: var(--muted); } .db.t small { color: var(--text); font-weight: 600; }
+.s-models { order: 8; } .s-days { order: 9; }
+/* polish: same palette, calmer and less template-like */
+.chip, .btn, .pill, .bdg, .tab, .c-meta, .lineage, .sec-h > span, .hab-s, .sparkcap, .cchip, .lbl, .tile small, .ov-row > b, .mk > b, .tl-names, .live { font-family: var(--body); }
+.lbl, .tile small, .ov-row > b, .mk > b { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+h1 { font-weight: 600; letter-spacing: -.02em; } h2 { font-size: 17px; font-weight: 600; }
+.block { border-radius: 10px; border-color: color-mix(in srgb, var(--line) 75%, transparent); }
+.card { border-left: 1px solid var(--line); border-radius: 10px; transition: background .12s; }
+.card:hover { transform: none; border-color: var(--line); background: color-mix(in srgb, var(--surface-2) 88%, white); }
+.cr { border-left: 1px solid var(--line); border-radius: 8px; } .cr:hover { border-color: var(--line); background: color-mix(in srgb, var(--surface-2) 88%, white); }
+.pill { border: 0; border-radius: 4px; font-size: 11.5px; background: color-mix(in srgb, currentColor 15%, transparent); }
+.btn { border-radius: 6px; font-size: 12.5px; } .chip { border-radius: 6px; font-size: 12.5px; }
+.bdg { border-radius: 4px; border: 0; font-size: 11.5px; background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.bdg.synced { background: color-mix(in srgb, var(--good) 14%, transparent); } .bdg.warn { background: color-mix(in srgb, var(--warm) 14%, transparent); }
+.w .dot { box-shadow: none; } .live::before { animation: none; }
+.tile { border-radius: 10px; }
+.lv { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.lv:first-child { margin-top: 8px; } .lv b { font-weight: 600; } .lv small { font-size: 12.5px; } .lv .live { color: var(--good); }
+.lv-d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.hab-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; font-size: 13px; color: var(--muted); } .hab-f b { color: var(--text); font-weight: 600; }
+.mk { margin-bottom: 6px; }
+.row > b { font-family: var(--body); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 500; color: var(--muted); }
+.dnote { margin-top: 4px; font-size: 12.5px; color: var(--warm); }
+a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: var(--muted); } a.cr .bdg.synced { color: var(--good); } a.cr .bdg.warn { color: var(--warm); }
+.s-gh { order: 7; } .s-gh .tabs { flex-wrap: wrap; }
+#ghq { width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; }
+#ghq:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.s-gh .rows { grid-template-columns: 1fr; max-height: 520px; overflow-y: auto; }
+@media (max-width: 900px) { .s-gh .rows { max-height: none; } }
+</style>
+<style>/* "New look" trial. Served on /v2 = index.html + this file on top. Same data, same buttons, same script.
+   Only looks change here. To drop the trial: delete this file, the /v2 route and the --v2 shortcut. */
+:root { --bg: #0a0d13; --line: #232a39; }
+html { scrollbar-color: #2a3244 transparent; }
+body { font-variant-numeric: tabular-nums; }
+
+/* top bar stays in view while scrolling */
+.wrap { padding-top: 0; gap: 20px; }
+.top { position: sticky; top: 0; z-index: 20; background: var(--bg); margin: 0 -24px; padding: 14px 24px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+.top > div:first-child { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+h1 { font-size: 22px; }
+h1::after { content: "new look"; font: 500 12px var(--body); letter-spacing: 0; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 3px 8px; border-radius: 4px; margin-left: 10px; vertical-align: middle; }
+.date { margin: 0; font-family: var(--body); font-size: 13px; }
+
+/* panels: told apart by shade, not by outlines */
+.block, .tile { border: 0; border-radius: 12px; }
+.block { padding: 20px; gap: 14px; }
+h2 { font-size: 18px; }
+.sec-h { align-items: center; }
+.note { max-width: 78ch; }
+
+/* glance row: three even tiles, live chats in a strip underneath instead of one tall tile */
+.pick { border-left: 3px solid var(--hot); justify-content: center; }
+.gauge { gap: 18px; margin-top: 10px; }
+.gauge svg { width: 112px; height: 112px; }
+.g-txt .sm { font-size: 12.5px; }
+/* every size above a phone: the cache tile always spans the full row (no empty half beside it) */
+@media (min-width: 601px) {
+  .glance { gap: 14px; }
+  .glance .tile { padding: 18px 20px; }
+  .glance .tile:last-child { grid-column: 1 / -1; display: grid; grid-template-columns: 220px minmax(0, 1fr); column-gap: 32px; align-content: start; grid-template-rows: auto auto auto 1fr; }
+  .glance .tile:last-child > * { grid-column: 1; }
+  #c-list { grid-column: 2; grid-row: 1 / span 4; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 32px; align-content: center; }
+  #c-list .lv { border: 0; margin: 0; padding: 6px 0; }
+}
+@media (min-width: 1101px) {
+  .glance { grid-template-columns: 1.5fr 1fr 1fr; }
+  .pick b { font-size: 28px; }
+  .bigtime { font-size: 46px; }
+}
+/* medium windows: gauges stack the ring over its text instead of squeezing it */
+@media (min-width: 601px) and (max-width: 760px) { .gauge { flex-direction: column; align-items: flex-start; } }
+/* phone and small tablet: top bar scrolls away with the page (it would eat too much of a small screen) */
+@media (max-width: 900px) {
+  .top { position: static; margin: 0; padding: 12px 0 0; border: 0; }
+  .wrap { gap: 12px; }
+  .block { padding: 14px 12px; gap: 10px; }
+}
+@media (max-width: 600px) { h1 { font-size: 21px; } .gauge svg { width: 88px; height: 88px; } .top > div:first-child { gap: 2px 12px; } }
+
+/* project cards */
+.grid { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr)); }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 8px; } }
+.card, .cr { border: 1px solid transparent; }
+.card { padding: 16px; gap: 12px; border-radius: 12px; }
+.card:hover, .cr:hover { border-color: var(--edge, var(--accent)); }
+.ring { width: 56px; height: 56px; }
+.ring b { font-family: var(--body); font-weight: 600; font-size: 11.5px; }
+.name { font-size: 16.5px; }
+.spark { height: 34px; }
+.acts { border-top: 1px solid var(--line); gap: 4px; }
+.card .acts .btn:not(:first-child) { border-color: transparent; background: none; color: var(--muted); }
+.card .acts .btn:not(:first-child):hover { color: var(--text); background: var(--surface); }
+
+@media (min-width: 901px) {
+  /* filters as one joined control, the chosen one filled in */
+  .tabs { background: var(--surface-2); padding: 3px; border-radius: 9px; gap: 2px; align-self: flex-start; }
+  .tab { border: 0; background: none; border-radius: 7px; padding: 6px 11px; font-weight: 500; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-pressed="true"] { background: var(--accent); color: #0d1017; font-weight: 600; }
+  /* time grid: bigger squares */
+  .share { height: 14px; }
+  .hm { gap: 6px; }
+  .hm-row, .hm-axis { grid-template-columns: 170px 1fr; }
+  .hm-cells { gap: 4px; }
+  .hm-cells i { height: 22px; border-radius: 4px; }
+  .hm-name { font-size: 13.5px; }
+  /* model usage: one line per model */
+  .mu { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px 150px; align-items: center; gap: 12px; padding: 6px 0; }
+  .mu-h { display: contents; }
+  .mu-h span { order: 1; font-weight: 600; }
+  .mu .bar { order: 2; margin: 0; height: 10px; }
+  .mu-h b { order: 3; text-align: right; }
+  .mu small { order: 4; text-align: right; }
+}
+/* GitHub: two columns, whole list visible, no box that scrolls inside the page */
+@media (min-width: 1101px) { .s-gh .rows { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; } }
+/* phone: keep the compact sizes */
+@media (max-width: 900px) { .ring { width: 50px; height: 50px; } .card { padding: 12px; gap: 8px; } }
+
+/* ---- round 8 ---- */
+/* the laptop page can mark and edit, so the "View only" chip is wrong there (it stays on the phone copy) */
+body.local .chip[title^="Nothing on this page"] { display: none; }
+/* phone: no CPU/RAM chip, so the top buttons fit on one line */
+@media (max-width: 600px) { #res { display: none; } }
+/* phone: limit tiles show two lines of the explanation; tap a tile for the rest (v2.js) */
+@media (max-width: 600px) {
+  .gauge .g-txt .sm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tile.open .g-txt .sm { display: block; }
+}
+/* routines: name and buttons on one line, the week squares full width underneath */
+.hab { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.hab-l { flex: 1 1 150px; }
+.hab-b { width: auto; padding-top: 0; flex: 0 0 auto; }
+.hab-b .btn { padding: 4px 9px; }
+.week { width: 100%; grid-template-columns: repeat(7, 1fr); }
+/* model usage + week day by day side by side on wide screens (v2.js wraps them in .pair) */
+.pair { display: contents; }
+@media (min-width: 1101px) {
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+  .pair .mu { grid-template-columns: 90px minmax(0, 1fr) 44px; }
+  .pair .mu small { grid-column: 1 / -1; text-align: left; }
+}
+</style></head>
+<body>
+<div class="wrap" id="app">
+  <header class="top">
+    <div><h1>Command Center</h1><div class="date" id="date">Loading…</div><noscript>This page needs JavaScript.</noscript></div>
+    <div class="top-r">
+      <span class="chip" id="res" title="What the hub itself is using on this laptop right now"></span>
+      <span class="chip" title="Nothing on this page can change your data. Only Claude writes.">View only</span>
+      <button class="chip" id="plink" type="button" hidden>Phone link</button>
+      <button class="chip" id="stop" type="button" hidden>Shut down</button>
+    </div>
+  </header>
+  <div id="err"></div>
+  <div id="sync" class="note" style="display:none"></div>
+  <form id="keyform" class="block" style="display:none"><h2>Unlock</h2><div class="note">Type the passphrase from the laptop (Command Center → Phone link). It is kept only on this phone.</div><input id="keyin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xxxx-xxxx-xxxx-xxxx-xxxx" style="font:16px var(--mono);padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)"><button class="btn" type="submit" style="align-self:flex-start;padding:10px 16px;font-size:14px">Unlock</button></form>
+
+  <section class="glance">
+    <div class="tile pick"><small>Claude would suggest</small><b id="pick">…</b><span id="pick-why"></span></div>
+    <div class="tile"><small>Weekly limit · estimate</small><div class="gauge"><span id="g-week"></span><div class="g-txt" id="t-week"></div></div></div>
+    <div class="tile"><small>5-hour limit · estimate</small><div class="gauge"><span id="g-five"></span><div class="g-txt" id="t-five"></div></div></div>
+    <div class="tile"><small>Cache · live</small><div class="bigtime" id="c-big">--:--</div><div class="bar"><i id="c-bar"></i></div><div class="note" id="c-txt"></div><div id="c-list"></div></div>
+  </section>
+
+  <section class="block s-over" id="over" aria-label="At a glance"></section>
+
+  <div class="cols">
+    <div class="col">
+      <section class="block s-proj">
+        <div class="sec-h"><h2>Projects</h2><div class="tabs" id="tabs" role="group" aria-label="Which projects to show"></div></div>
+        <div id="plist"></div>
+      </section>
+      <section class="block s-time">
+        <div class="sec-h"><h2>Where your Claude time went</h2><span>this week, then the last 14 days</span></div>
+        <div class="share" id="share"></div>
+        <div class="share-leg" id="shareleg"></div>
+        <div class="hm" id="hm"></div>
+        <div class="note">Brighter square = more Claude replies that day. Click a row for the project's details.</div>
+      </section>
+      <section class="block s-gh">
+        <div class="sec-h"><h2>GitHub</h2><span id="ghn"></span></div>
+        <div class="tabs" id="ghtabs" role="group" aria-label="Which repositories to show"></div>
+        <div class="note">Has a folder here = a copy of it exists on this laptop. No folder here = it lives only on GitHub. Public = anyone can see it. Private = only you.</div>
+        <input id="ghq" type="search" placeholder="Find a repository" aria-label="Find a repository" autocomplete="off">
+        <div id="ghl" class="rows"></div>
+      </section>
+      <section class="block s-models"><div class="sec-h"><h2>Model usage</h2><span>this week</span></div><div id="models"></div></section>
+    </div>
+    <div class="col side">
+      <section class="block s-habits"><div class="sec-h"><h2>Routines</h2><span>things you repeat</span><button type="button" class="btn lo" data-ef="habit:new">Add routine</button></div><div id="habits"></div></section>
+      <section class="block s-cache"><div class="sec-h"><h2>Cache, live</h2><span>last 12 hours</span></div><div id="crows" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div class="note">While a session is warm, continuing it is cheap. After the timer runs out the next message costs much more. Estimated from the time of the last reply.</div></section>
+      <section class="block s-dates"><div class="sec-h"><h2>Coming up</h2><span id="dates-s"></span><button type="button" class="btn lo" data-ef="date:new">Add</button></div><div id="dates"></div></section>
+      <section class="block s-pipes"><div class="sec-h"><h2>Pipelines</h2><span>where each thing has got to</span><button type="button" class="btn lo" data-ef="pipe:new">Add pipeline</button></div><div id="pipes" style="display:flex;flex-direction:column;gap:10px"></div></section>
+      <section class="block s-days"><div class="sec-h"><h2>Week, day by day</h2><span id="days-s"></span></div><div id="days"></div></section>
+    </div>
+  </div>
+  <p class="foot">Limits and cache timers are estimates worked out from Claude Code's own logs on this laptop, not official numbers.<br>Only times, folders and token counts are read. Never what was said.</p>
+</div>
+<dialog id="dlg"><div class="d-in" id="dbody"></div></dialog>
+<div id="toast" role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+  // Never fail silently: any script error is printed at the top of the page so a blank screen can't hide its cause.
+  function showErr(m) { var e = document.getElementById('err'); if (e) { e.style.display = 'block'; e.textContent = m; } }
+  window.addEventListener('error', function (ev) { showErr('Page error: ' + ev.message + (ev.lineno ? ' (line ' + ev.lineno + ')' : '')); });
+  window.addEventListener('unhandledrejection', function (ev) { showErr('Page error: ' + (ev.reason && ev.reason.message || ev.reason)); });
+  var tabInit = false, ghf = 'all', ghq = '', showAll = false, S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
+  var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  if (LOCAL) document.body.classList.add('local');
+  var $ = function (id) { return document.getElementById(id); };
+  var PAL = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9']; // fixed order, colour-blind checked
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function now() { return Date.now() / 1000 + off; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock(s) { s = Math.max(0, Math.floor(s)); var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return (h ? h + ':' + pad(m) : m) + ':' + pad(s % 60); }
+  function until(s) { var m = Math.max(0, Math.floor(s / 60)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60); return d ? d + 'd ' + h + 'h' : h ? h + 'h ' + (m % 60) + 'm' : (m % 60) + 'm'; }
+  function ago(ts) { if (!ts) return 'never'; var s = now() - ts; return s < 90 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + ' days ago'; }
+  function ist(ts, o) { return new Date(ts * 1000).toLocaleString('en-IN', Object.assign({ timeZone: 'Asia/Kolkata' }, o)); }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.className = 'on'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.className = ''; }, 2600); }
+
+  /* ---------- project helpers ---------- */
+  function group(p) { return { working: 'alive', waiting: 'alive', cold: 'cold', done: 'done', abandoned: 'dead', gone: 'dead', misc: 'misc' }[p.status] || null; }
+  function heat(p) {
+    if (p.status === 'done') return { k: 'Done', c: 'var(--good)', p: 100 };
+    if (p.status === 'abandoned') return { k: 'Abandoned', c: 'var(--idle)', p: 4 };
+    if (p.status === 'gone') return { k: 'Folder gone', c: 'var(--idle)', p: 4 };
+    if (p.status === 'waiting') return { k: 'Waiting', c: 'var(--teal)', p: 50 };
+    var pct = Math.max(6, Math.round((1 - Math.min(p.age, 30) / 30) * 100));
+    if (p.heat) return p.heat === 'hot' ? { k: 'Hot', c: 'var(--hot)', p: Math.max(pct, 80) } : p.heat === 'warm' ? { k: 'Warm', c: 'var(--warm)', p: Math.max(pct, 50) } : { k: 'Cold', c: 'var(--cold)', p: Math.min(pct, 25) };
+    if (p.age === 0) return { k: 'Hot', c: 'var(--hot)', p: pct };       // touched today
+    if (p.age <= 3) return { k: 'Warm', c: 'var(--warm)', p: pct };      // last 3 days
+    return { k: 'Cold', c: 'var(--cold)', p: pct };
+  }
+  function dtext(p) { return p.status === 'done' ? '✓' : p.status === 'abandoned' || p.status === 'gone' ? '✕' : p.age > 999 ? '–' : p.age === 0 ? 'today' : p.age + 'd'; }
+  function ring(p, sm) { var h = heat(p); return '<div class="ring' + (sm ? ' sm' : '') + '" style="--p:' + h.p + '%;--hc:' + h.c + '"><b>' + dtext(p) + '</b></div>'; }
+  function pill(p) { var h = heat(p); return '<span class="pill" style="color:' + h.c + '">' + h.k + '</span>'; }
+  function badges(p) { return (p.loc || []).map(function (b) { return '<span class="bdg ' + esc(b.k) + '">' + esc(b.t) + '</span>'; }).join(''); }
+  function sub(p) {
+    if (p.broken) return '<span class="bad">Broken: ' + esc(p.broken) + '</span>';
+    if (p.next) return 'Next: ' + esc(p.next);
+    if (p.now) return esc(p.now);
+    return /^(touched|untouched)/.test(p.reason || '') ? '' : esc(p.reason || '');   // already shown as 'touched X ago'
+  }
+  function spark(a, c) {
+    var m = Math.max.apply(null, a.concat([1])), step = 210 / (a.length - 1);
+    var pts = a.map(function (v, i) { return (i * step).toFixed(1) + ',' + (36 - v / m * 30).toFixed(1); }).join(' ');
+    return '<svg class="spark" viewBox="0 0 210 40" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,40 ' + pts + ' 210,40" fill="' + c + '" opacity=".2"/><polyline points="' + pts + '" fill="none" stroke="' + c + '" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+  }
+  function cacheOf(p) { return (S.cache || []).filter(function (c) { return c.project === p.name; })[0]; }
+  function cchip(p) { var c = cacheOf(p); return c ? '<span class="cchip" data-exp="' + c.expires + '" data-ttl="' + c.ttl + '"></span>' : ''; }
+  function links(p, full) {
+    var h = '';
+    if (LOCAL && p.paths && p.paths.length && p.status !== 'gone') h += '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="0">Open folder</button>';
+    if (LOCAL) h += '<button type="button" class="btn" data-mark="pin&' + esc(p.key) + '&' + (p.pinned ? 'off' : 'on') + '">' + (p.pinned ? 'Unpin' : 'Pin') + '</button>';
+    if (p.url) h += '<a class="btn" href="' + esc(p.url) + '" target="_blank" rel="noopener">GitHub ↗</a>';
+    if (!full) h += '<button type="button" class="btn ghost" data-key="' + esc(p.key) + '">Details</button>';
+    return h;
+  }
+  function card(p) {
+    var h = heat(p);
+    return '<article class="card" data-key="' + esc(p.key) + '" style="--edge:' + h.c + '"><div class="pc-top">' + ring(p) +
+      '<div class="pc-main"><div class="c-top"><span class="name">' + esc(p.name) + '</span>' + pill(p) + '</div><div class="c-sub">' + sub(p) + '</div></div></div>' +
+      spark(p.spark, h.c) + '<div class="sparkcap"><span>14 days ago</span><span>today</span></div>' +
+      '<div class="c-meta"><span>touched ' + ago(p.last) + '</span>' + badges(p) + cchip(p) + '</div>' +
+      '<div class="acts">' + links(p) + '</div></article>';
+  }
+  function crow(p) {
+    var h = heat(p), dead = group(p) === 'dead', by = dead && p.replacedBy ? byKey(p.replacedBy) : null;
+    var line = dead ? '<div class="lineage">' + (by ? 'Replaced by <b>' + esc(by.name) + '</b>' : esc(p.reason || 'Nothing replaced it')) + '</div>' : '<div class="c-sub">' + sub(p) + '</div>';
+    return '<div class="cr' + (dead ? ' dead' : '') + '" data-key="' + esc(p.key) + '" style="--edge:' + h.c + '">' + ring(p, true) +
+      '<div class="mid"><div class="name">' + esc(p.name) + '</div>' + line + '</div>' + badges(p) + '</div>';
+  }
+  function byKey(k) { return S.projects.filter(function (p) { return p.key === k; })[0]; }
+
+  /* ---------- sections ---------- */
+  function renderProjects() {
+    var g = { alive: [], cold: [], done: [], dead: [], misc: [] };
+    S.projects.forEach(function (p) { var k = group(p); if (k) g[k].push(p); });
+    var T = [['pinned', 'Pinned'], ['alive', 'Working on'], ['cold', 'Cold'], ['done', 'Done'], ['dead', 'Graveyard'], ['misc', 'One-offs']];
+    g.pinned = S.projects.filter(function (p) { return p.pinned && group(p); });
+    if (!tabInit) { tabInit = true; if (g.pinned.length) tab = 'pinned'; }
+    var n = function (k) { return k === 'gh' ? (S.githubOnly || []).length : g[k].length; };
+    $('tabs').innerHTML = T.map(function (t) { return '<button type="button" class="tab" data-tab="' + t[0] + '" aria-pressed="' + (tab === t[0]) + '">' + t[1] + '<b>' + n(t[0]) + '</b></button>'; }).join('');
+    var h;
+    if (tab === 'gh') h = '<div class="rows">' + (S.githubOnly || []).map(function (r) {
+      return '<a class="cr" style="text-decoration:none" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">last pushed ' + esc((r.pushed || '').slice(0, 10)) + ' · not on this laptop</div></div><span class="bdg">GitHub ↗</span></a>';
+    }).join('') + '</div>';
+    else if (tab === 'pinned') h = '<div class="grid">' + g.pinned.map(card).join('') + '</div>';
+    else if (tab === 'alive') {
+      var small = window.matchMedia('(max-width: 900px)').matches, list = small && !showAll ? g.alive.slice(0, 5) : g.alive;
+      h = '<div class="grid">' + list.map(card).join('') + '</div>' + (small && g.alive.length > 5 ? '<button type="button" class="btn" data-more style="align-self:center;margin-top:10px;padding:10px 16px">' + (showAll ? 'Show fewer' : 'Show all ' + g.alive.length + ' (older ones)') + '</button>' : '');
+    }
+    else h = '<div class="rows">' + g[tab].map(crow).join('') + '</div>';
+    var note = { pinned: LOCAL ? 'Your pinned projects. Pin or unpin one from its card or details.' : 'Your pinned projects.', dead: 'Claude never suggests these.', done: 'Finished. Claude only suggests small fixes here if you ask.', misc: 'One-time folders. Kept out of the way.', cold: 'Not touched in over two weeks. Claude may suggest waking one up.' }[tab];
+    $('plist').innerHTML = (n(tab) ? h : '<div class="empty">Nothing here.</div>') + (note ? '<div class="note" style="margin-top:10px">' + note + '</div>' : '');
+  }
+  function renderGh() {
+    var all = S.ghAll || [];
+    var F = [['all', 'All', function () { return true; }], ['public', 'Public', function (r) { return r.vis === 'public'; }], ['private', 'Private', function (r) { return r.vis === 'private'; }],
+      ['laptop', 'Has a folder here', function (r) { return !!r.project; }], ['only', 'No folder here', function (r) { return !r.project; }], ['fork', 'Forks', function (r) { return r.fork; }], ['arch', 'Archived', function (r) { return r.archived; }]];
+    $('ghtabs').innerHTML = F.map(function (f) { return '<button type="button" class="tab" data-gh="' + f[0] + '" aria-pressed="' + (ghf === f[0]) + '">' + f[1] + '<b>' + all.filter(f[2]).length + '</b></button>'; }).join('');
+    var cur = F.filter(function (f) { return f[0] === ghf; })[0], q = ghq.trim().toLowerCase();
+    var list = all.filter(cur[2]).filter(function (r) { return !q || (r.name + ' ' + (r.desc || '') + ' ' + (r.lang || '')).toLowerCase().indexOf(q) >= 0; });
+    $('ghn').textContent = all.length ? list.length + ' of ' + all.length + ' repositories' : '';
+    $('ghl').innerHTML = list.map(function (r) {
+      return '<a class="cr gh" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">' + (r.desc ? esc(r.desc) + ' · ' : '') + [r.lang, r.branches + (r.branches === 1 ? ' branch' : ' branches'), 'pushed ' + (r.pushed ? ago(Date.parse(r.pushed) / 1000) : '?'), r.project ? 'folder on laptop: ' + esc((r.path || '').replace(/\//g, '\\')) : 'not on this laptop'].filter(Boolean).join(' · ') + '</div></div><span class="bdg ' + (r.vis === 'private' ? 'warn' : 'synced') + '">' + (r.vis || '?') + '</span>' + (r.fork ? '<span class="bdg">fork</span>' : '') + (r.archived ? '<span class="bdg">archived</span>' : '') + '</a>';
+    }).join('') || '<div class="empty">' + (all.length ? 'No repository matches.' : 'GitHub list not loaded yet.') + '</div>';
+  }
+  function mname(x) { return x.replace(/^claude-/, '').replace(/-(\d+)-(\d+)$/, ' $1.$2').replace(/-/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+  function renderModels() {
+    var mu = S.modelUse || [], tot = mu.reduce(function (a, x) { return a + x.units; }, 0), L = S.limit || {}, real = (L.real && L.real.models) || [];
+    var h = mu.map(function (x) {
+      var p = tot ? x.units / tot * 100 : 0;
+      return '<div class="mu"><div class="mu-h"><span>' + esc(mname(x.model)) + '</span><b>' + Math.round(p) + '%</b></div><div class="bar"><i style="width:' + p + '%;background:var(--accent)"></i></div><small>' + x.replies + ' replies this week</small></div>';
+    }).join('') || '<div class="empty">No Claude replies yet this week.</div>';
+    if (real.length) h += '<div class="mu-r"><span class="lbl">Claude\'s own per-model limits (' + ago(L.real.at) + ')</span>' + real.map(function (x) { return '<div class="lr"><span>' + esc(x.name) + '</span><b>' + Math.round(x.pct) + '% used</b></div>'; }).join('') + '</div>';
+    h += '<div class="note">Bars = your share of this week\'s Claude work by model, counted from the logs on this laptop. The limits underneath are Claude\'s own numbers, copied when Claude last checked.</div>';
+    $('models').innerHTML = h;
+  }
+  function renderDays() {
+    var L = S.limit || {}, pd = L.perDay || [], sum = pd.reduce(function (a, x) { return a + x; }, 0), mx = Math.max.apply(null, pd.concat([1])), n = now();
+    $('days').innerHTML = '<div class="dbars">' + pd.map(function (v, i) {
+      var t = L.start + i * 86400, today = n >= t && n < t + 86400, pct = L.pct != null && sum ? v / sum * L.pct : null;
+      return '<div class="db' + (today ? ' t' : '') + '"><span>' + (pct == null ? '' : Math.round(pct) + '%') + '</span><i style="height:' + Math.max(3, v / mx * 100) + '%"></i><small>' + ist(t, { weekday: 'short' }) + '</small></div>';
+    }).join('') + '</div>';
+    $('days-s').textContent = L.pct != null ? 'about ' + Math.round(L.pct) + '% of the week used' : '';
+  }
+  function renderTime() {
+    var act = S.projects.filter(function (p) { return p.weekUnits > 0 && group(p); }).sort(function (a, b) { return b.weekUnits - a.weekUnits; });
+    var sum = act.reduce(function (a, p) { return a + p.weekUnits; }, 0);
+    var top = act.slice(0, PAL.length).sort(function (a, b) { return a.key < b.key ? -1 : 1; }), rest = act.slice(PAL.length).reduce(function (a, p) { return a + p.weekUnits; }, 0);
+    var segs = top.map(function (p, i) { return { n: p.name, v: p.weekUnits, c: PAL[i] }; });
+    if (rest) segs.push({ n: 'Other', v: rest, c: '#8d96ab' });
+    $('share').innerHTML = segs.map(function (s) { return '<i title="' + esc(s.n) + ' ' + Math.round(s.v / sum * 100) + '%" style="flex:' + s.v + ';background:' + s.c + '"></i>'; }).join('');
+    $('shareleg').innerHTML = sum ? segs.map(function (s) { return '<span><i style="background:' + s.c + '"></i>' + esc(s.n) + ' <b>' + Math.round(s.v / sum * 100) + '%</b></span>'; }).join('') : '<span>No Claude work yet this week.</span>';
+    var tot = function (p) { return p.spark.reduce(function (x, y) { return x + y; }, 0); };
+    var rows = S.projects.filter(function (p) { return group(p) && tot(p); }).sort(function (a, b) { return tot(b) - tot(a); }).slice(0, 8);
+    var mx = Math.max.apply(null, rows.map(function (p) { return Math.max.apply(null, p.spark); }).concat([1]));
+    $('hm').innerHTML = rows.map(function (p) {
+      return '<button type="button" class="hm-row" data-key="' + esc(p.key) + '"><span class="hm-name">' + esc(p.name) + '</span><div class="hm-cells">' + p.spark.map(function (v, i) {
+        var l = v ? Math.min(4, 1 + Math.floor(Math.sqrt(v / mx) * 3.99)) : 0;
+        return '<i class="' + (l ? 'l' + l : '') + (i === 13 ? ' td' : '') + '" title="' + dayLabel(13 - i) + ': ' + v + ' replies"></i>';
+      }).join('') + '</div></button>';
+    }).join('') + '<div class="hm-axis"><span></span><div><span>2 weeks ago</span><span>today</span></div></div>';
+  }
+  function dayLabel(back) { return ist(now() - back * 86400, { weekday: 'short', day: 'numeric', month: 'short' }); }
+  function renderHabits() {
+    $('habits').innerHTML = (S.habits || []).map(function (h, hi) {
+      var cells = h.week.map(function (d, i) { return '<div>' + esc(d.wd.charAt(0)) + '<i class="' + (d.done ? 'y' : '') + (i === 6 ? ' t' : '') + '" title="' + esc(d.d) + '">' + (d.done ? '✓' : '') + '</i></div>'; }).join('');
+      var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
+      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '<button type="button" class="btn ghost" data-ef="habit:' + hi + '">Edit</button></div>' : '';
+      return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
+    }).join('') || '<div class="empty">No routines set.</div>';
+    $('habits').innerHTML += S.projects.filter(function (p) { return p.status === 'routine'; }).map(function (p) {
+      return '<div class="hab-f"><span>Folder behind these: <b data-key="' + esc(p.key) + '" style="cursor:pointer">' + esc(p.name) + '</b> · last Claude session ' + ago(p.lastSession) + '</span>' + (LOCAL && p.paths && p.paths.length ? '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="0">Open folder</button>' : '') + '</div>';
+    }).join('');
+  }
+  function renderChats() {
+    $('c-list').innerHTML = (S.cache || []).slice(0, 4).map(function (c) {
+      var det = esc((c.model || '').replace('claude-', '')) + ' · chat ' + esc(c.session) + ' · ' + (c.replies || 0) + ' replies · started ' + ist(c.started, { hour: 'numeric', minute: '2-digit' });
+      return '<div class="lv"><div><b>' + esc(c.project || 'unknown') + '</b> <small data-lvl="' + c.last + '"></small><div class="lv-d">' + det + '</div></div><span class="cchip" data-exp="' + c.expires + '" data-ttl="' + c.ttl + '"></span></div>';
+    }).join('');
+  }
+  function renderCacheRows() {
+    renderChats();
+    $('crows').innerHTML = (S.cache || []).slice(0, 6).map(function (c) {
+      return '<div class="crow"><span>' + esc(c.project || 'unknown') + '<small>' + esc((c.model || '').replace('claude-', '')) + (c.ttlKnown ? '' : ' · window assumed') + '</small></span><div class="bar"><i data-bexp="' + c.expires + '" data-ttl="' + c.ttl + '"></i></div><span class="ctime" data-texp="' + c.expires + '" data-ttl="' + c.ttl + '"></span></div>';
+    }).join('') || '<div class="empty">No Claude sessions in the last 12 hours.</div>';
+  }
+  function renderDates() {
+    var ds = S.dates || [], span = Math.max.apply(null, ds.map(function (d) { return d.daysLeft; }).concat([7])) + 1, cols = ['var(--teal)', 'var(--bad)', 'var(--warm)', 'var(--accent)'];
+    var end = ist(now() + span * 86400, { day: 'numeric', month: 'short' });
+    var h = ds.length ? '<div class="tl">' + ds.map(function (d, i) {
+      var a = Math.max(0, d.daysTo) / span * 100, b = (d.daysLeft + 1) / span * 100;
+      return '<div class="tl-row"><div class="tl-track"><i title="' + esc(d.name) + '" style="left:' + a + '%;width:' + Math.max(2, b - a) + '%;background:' + cols[i % 4] + '"></i></div></div>';
+    }).join('') + '<div class="tl-names"><span>today</span><span>' + end + '</span></div></div>' : '';
+    h += ds.map(function (d, i) {
+      var big = d.active ? d.daysLeft + 'd' : d.daysTo + 'd', s = d.active ? 'left' : 'to start';
+      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div><button type="button" class="btn ghost lo" style="margin-left:auto" data-ef="date:' + i + '">Edit</button></div>';
+    }).join('');
+    h += '<div class="cd"><div class="big" id="rs-big" style="color:var(--sky)"></div><div><div class="t">Claude weekly limit resets</div><div class="s">Every Tuesday, 7:30 PM</div></div></div>';
+    $('dates').innerHTML = h;
+    $('dates-s').textContent = ds.length ? ds.length + ' dated' : '';
+  }
+  function renderPipes() {
+    var SC = ['#8d96ab', '#f5b84a', '#38bdf8', '#a3e635'];
+    $('pipes').innerHTML = (S.pipelines || []).map(function (p, pi) {
+      var its = p.items || [];
+      return '<div class="pl-h"><span>' + esc(p.name) + '</span><span class="pl-a"><span class="muted" style="font-size:12px;font-weight:400">' + its.length + ' in it</span><button type="button" class="btn ghost lo" data-ef="item:' + pi + ':new">Add item</button><button type="button" class="btn ghost lo" data-ef="pipe:' + pi + '">Edit</button></span></div><div class="strip">' + p.stages.map(function (s, i) {
+        return '<div style="--sc:' + SC[Math.min(3, i + (p.stages.length < 4 ? 1 : 0))] + '"><b>' + its.filter(function (x) { return x.stage === s; }).length + '</b><small>' + esc(s) + '</small></div>';
+      }).join('') + '</div>' + (its.length ? '<div>' + its.slice(0, 10).map(function (x, ii) { return '<div class="lr"><span>' + esc(x.name) + '</span><span><span class="bdg">' + esc(x.stage) + '</span> <button type="button" class="btn ghost lo" data-ef="item:' + pi + ':' + ii + '">Move</button></span></div>'; }).join('') + '</div>'
+        : '<div class="note">Nothing in it yet.' + (LOCAL ? ' Use Add item.' : '') + '</div>');
+    }).join('') || '<div class="empty">No pipelines yet.' + (LOCAL ? ' Use Add pipeline.' : '') + '</div>';
+  }
+  /* ---------- edit forms (laptop only) ---------- */
+  function editForm(code) {
+    var c = code.split(':'), i = c[1], spec;
+    var T = function (k, l, v, o) { return Object.assign({ k: k, l: l, v: v || '', t: 'text' }, o || {}); };
+    if (c[0] === 'date') {
+      var d = i === 'new' ? {} : S.dates[+i];
+      spec = { title: i === 'new' ? 'Add to Coming up' : 'Edit date', verb: 'dateSave', extra: { old: d.name || '' }, f: [T('name', 'What is it', d.name, { ph: 'e.g. LinkedIn post, exam, deadline' }), T('start', 'Starts', d.start, { t: 'date' }), T('end', 'Ends (leave empty for one day)', d.end, { t: 'date' }), T('note', 'Note (optional)', d.note, { ph: 'e.g. Not registered yet' }), T('quiet', 'Claude keeps suggestions small during this', d.quiet, { t: 'check' })], del: i === 'new' ? null : { verb: 'dateDel', extra: { name: d.name } } };
+    } else if (c[0] === 'pipe') {
+      var p = i === 'new' ? { stages: [] } : S.pipelines[+i];
+      spec = { title: i === 'new' ? 'Add a pipeline' : 'Edit pipeline', verb: 'pipeSave', extra: { id: p.id || '' }, f: [T('name', 'Name', p.name, { ph: 'e.g. Lecture to phone' }), T('stages', 'Stages in order, separated by commas', p.stages.join(', '), { ph: 'recording, transcript, note, on phone' })], del: i === 'new' ? null : { verb: 'pipeDel', extra: { id: p.id } } };
+    } else if (c[0] === 'item') {
+      var pl = S.pipelines[+i], it = c[2] === 'new' ? {} : pl.items[+c[2]];
+      spec = { title: (c[2] === 'new' ? 'Add to ' : 'Move in ') + pl.name, verb: 'itemSave', extra: { pipe: pl.id, old: it.name || '' }, f: [T('name', 'Item', it.name, { ph: 'e.g. Lecture 12, DBMS' }), T('stage', 'Stage', it.stage || pl.stages[0], { t: 'select', o: pl.stages })], del: c[2] === 'new' ? null : { verb: 'itemDel', extra: { pipe: pl.id, name: it.name } } };
+    } else {
+      var hb = i === 'new' ? {} : S.habits[+i];
+      spec = { title: i === 'new' ? 'Add a routine' : 'Edit routine', verb: 'habitSave', extra: { id: hb.id || '' }, f: [T('name', 'Name', hb.name, { ph: 'e.g. Revise for 30 minutes' }), T('every', 'How often', hb.every || 'daily', { t: 'select', o: ['daily', 'weekdays', 'weekly'] })], del: i === 'new' ? null : { verb: 'habitDel', extra: { id: hb.id } } };
+    }
+    var f = spec.f.map(function (x) {
+      if (x.t === 'check') return '<label class="ck"><input type="checkbox" name="' + x.k + '"' + (x.v ? ' checked' : '') + '> ' + esc(x.l) + '</label>';
+      var inp = x.t === 'select' ? '<select name="' + x.k + '">' + x.o.map(function (o) { return '<option' + (o === x.v ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>' : '<input name="' + x.k + '" type="' + x.t + '" value="' + esc(x.v) + '" placeholder="' + esc(x.ph || '') + '" autocomplete="off">';
+      return '<label>' + esc(x.l) + inp + '</label>';
+    }).join('');
+    $('dbody').innerHTML = '<div class="d-h"><h3>' + esc(spec.title) + '</h3><button type="button" class="x" data-close aria-label="Close">×</button></div><form id="ef" class="ef" data-verb="' + spec.verb + '" data-extra=\'' + esc(JSON.stringify(spec.extra)) + '\'>' + f + '<div id="ef-err" class="bad"></div><div class="ef-b"><button type="submit" class="btn on">Save</button>' + (spec.del ? '<button type="button" class="btn" data-edel=\'' + esc(JSON.stringify(Object.assign({ verb: spec.del.verb }, spec.del.extra))) + '\'>Delete</button>' : '') + '</div></form>';
+    openKey = null;
+    if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); }
+    var first = $('dbody').querySelector('input,select'); if (first) first.focus();
+  }
+  function sendEdit(obj) {
+    return fetch('/api/edit', { method: 'POST', headers: { 'X-Hub': 'mark' }, body: JSON.stringify(obj) }).then(function (r) { return r.text().then(function (t) { if (!r.ok) throw new Error(t); }); });
+  }
+  document.addEventListener('submit', function (e) {
+    var f = e.target; if (f.id !== 'ef') return; e.preventDefault();
+    var o = Object.assign({ verb: f.dataset.verb }, JSON.parse(f.dataset.extra)); new FormData(f).forEach(function (v, k) { o[k] = v; });
+    f.querySelectorAll('input[type=checkbox]').forEach(function (c) { o[c.name] = c.checked; });
+    sendEdit(o).then(function () { $('dlg').close(); toast('Saved'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; });
+  });
+  function renderOverview() {
+    var alive = S.projects.filter(function (p) { return group(p) === 'alive'; }).slice(0, 3);
+    var pipes = (S.pipelines || []).map(function (p) { var last = p.stages[p.stages.length - 1]; return esc(p.name.replace(/ to phone| loop/, '')) + ' <small>' + (p.items || []).filter(function (x) { return x.stage !== last; }).length + ' in progress</small>'; }).join(' · ');
+    var hab = (S.habits || []).filter(function (h) { return h.due; }), hd = hab.filter(function (h) { return h.done; }).length;
+    var ds = (S.dates || []).slice(0, 2).map(function (d) { return esc(d.name) + ' <small>' + (d.active ? d.daysLeft + 'd left' : 'in ' + d.daysTo + 'd') + (d.note ? ' · ' + esc(d.note) : '') + '</small>'; });
+    var L = S.limit || {}; ds.push('Limit resets <small>in ' + until(L.resets - now()).split(' ')[0] + '</small>');
+    var row = function (go, k, v) { return '<div class="ov-row" data-go="' + go + '"><b>' + k + '</b><span>' + v + '</span><i>›</i></div>'; };
+    $('over').innerHTML = row('s-habits', 'Today', hd + ' of ' + hab.length + ' habits done') +
+      row('s-proj', 'Projects', alive.map(function (p) { return esc(p.name.replace(/ \(.*\)/, '')) + ' <small>' + (p.age === 0 ? 'today' : p.age + 'd') + '</small>'; }).join(' · ') || 'Nothing active') +
+      row('s-pipes', 'Pipelines', pipes || 'None') + row('s-dates', 'Coming up', ds.join(' · '));
+  }
+  function renderPick() {
+    var s = S.suggest || {}, ex = (S.dates || []).filter(function (d) { return d.quiet; })[0], why = s.by === 'claude' ? 'Set by Claude ' + (s.at ? s.at.slice(0, 10) : '') + '.' : 'Most recently touched working project.';
+    if (ex) why += ex.active ? ' Exams are on, so only small tasks.' : ' ' + ex.name + ' start in ' + ex.daysTo + ' days, so keep sessions short.';
+    $('pick').textContent = s.text || '…';
+    $('pick-why').textContent = why + ' Finished and abandoned projects are never suggested.';
+  }
+
+  /* ---------- detail dialog ---------- */
+  function detail(key) {
+    var p = byKey(key); if (!p) return;
+    openKey = key;
+    var h = heat(p), by = { dev: 'you said so', claude: 'set by Claude', auto: 'worked out automatically' }[p.by] || '', rep = p.replacedBy && byKey(p.replacedBy), c = cacheOf(p);
+    var mx = Math.max.apply(null, p.spark.concat([1])), sum = S.projects.reduce(function (a, x) { return a + (x.weekUnits || 0); }, 0);
+    var suggestable = p.status === 'working' || p.status === 'cold';
+    var b = '<div class="d-h">' + ring(p) + '<h3>' + esc(p.name) + '</h3>' + pill(p) + '<button type="button" class="x" data-close aria-label="Close">×</button></div>';
+    b += '<div class="acts" style="border:0;padding:0">' + links(p, true) + '</div>';
+    b += '<div class="stats"><div><span class="lbl">Last touched</span><b>' + ago(p.last) + '</b></div><div><span class="lbl">Claude sessions</span><b>' + p.sessions + '</b></div><div><span class="lbl">Share of this week</span><b>' + (sum ? Math.round(p.weekUnits / sum * 100) : 0) + '%</b></div><div><span class="lbl">Cache</span><b>' + (c ? '<span class="cchip" style="margin:0;font-size:16px" data-exp="' + c.expires + '" data-ttl="' + c.ttl + '"></span>' : '<span class="muted">–</span>') + '</b></div></div>';
+    b += '<div><span class="lbl" style="margin-bottom:8px">Claude replies per day, last 14 days</span><div class="bars">' + p.spark.map(function (v, i) { return '<div title="' + dayLabel(13 - i) + ': ' + v + ' replies"><i class="' + (v ? '' : 'z') + '" style="height:' + (v ? Math.max(4, v / mx * 100) : 0) + '%"></i></div>'; }).join('') + '</div><div class="bars-x">' + p.spark.map(function (v, i) { return '<span>' + ist(now() - (13 - i) * 86400, { day: 'numeric' }) + '</span>'; }).join('') + '</div></div>';
+    b += '<div>';
+    b += '<div class="row"><b>Status</b><div><span>' + h.k + ' <span class="muted">(' + by + ')</span></span>' + (p.reason ? '<span class="muted">' + esc(p.reason) + '</span>' : '') + '</div></div>';
+    if (LOCAL) {
+      var cur = p.by === 'dev' ? (p.status === 'working' ? (p.heat || '') : p.status) : 'auto';
+      var autoNow = p.autoStatus === 'gone' ? 'Folder gone' : p.autoStatus === 'cold' ? 'Cold' : p.autoHeat.charAt(0).toUpperCase() + p.autoHeat.slice(1);
+      var opts = [['hot', 'Hot'], ['warm', 'Warm'], ['cold', 'Cold'], ['waiting', 'Waiting'], ['done', 'Done'], ['abandoned', 'Abandoned'], ['routine', 'Routine'], ['auto', 'Auto (it says ' + autoNow + ')']];
+      b += '<div class="row"><b>Mark it</b><div><div class="mk">' + opts.map(function (o) { return '<button type="button" class="btn' + (cur === o[0] ? ' on' : '') + '" data-mark="mark&' + esc(p.key) + '&' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div><span class="muted">Showing <b style="color:var(--text)">' + h.k + '</b> · ' + (p.by === 'dev' ? 'you set it' : 'worked out automatically') + '. Your mark stays until you pick Auto.</span></div></div>';
+    }
+    if (rep) b += '<div class="row"><b>Replaced by</b><div><button type="button" class="btn" style="align-self:flex-start" data-key="' + esc(rep.key) + '">' + esc(rep.name) + ' →</button></div></div>';
+    b += '<div class="row"><b>Now</b><div>' + (p.now ? esc(p.now) : '<span class="muted">Nothing noted</span>') + '</div></div>';
+    b += '<div class="row"><b>Broken</b><div>' + (p.broken ? '<span class="bad">' + esc(p.broken) + '</span>' : '<span class="muted">Nothing noted</span>') + '</div></div>';
+    b += '<div class="row"><b>Next</b><div>' + (p.next ? esc(p.next) : '<span class="muted">Nothing noted</span>') + '</div></div>';
+    b += '<div class="row"><b>Where</b><div><span>' + (badges(p) || '<span class="muted">unknown</span>') + '</span>' + (p.paths || []).map(function (x, i) {
+      return '<span class="path"><code>' + esc(x) + '</code>' + (LOCAL ? '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="' + i + '">Open</button>' : '') + '</span>';
+    }).join('') + (p.url ? '<span class="path"><code>' + esc(p.url.replace('https://', '')) + '</code><a class="btn" href="' + esc(p.url) + '" target="_blank" rel="noopener">Open ↗</a></span>' : '') + '</div></div>';
+    b += '<div class="row"><b>Activity</b><div><span>Last Claude session: ' + ago(p.lastSession) + '</span><span>Last git commit: ' + ago(p.lastCommit) + '</span></div></div>';
+    b += '<div class="row"><b>Claude</b><div>' + (suggestable ? 'Can suggest this' : 'Will not suggest this') + '</div></div></div>';
+    $('dbody').innerHTML = b;
+    if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); $('dlg').focus(); }
+    tick();
+  }
+  $('dlg').addEventListener('close', function () { openKey = null; document.documentElement.classList.remove('lock'); });
+  $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
+    if (!t || t.tagName === 'A') return;
+    if (t.dataset.ef) return editForm(t.dataset.ef);
+    if (t.dataset.edel) { if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Click again to delete'; return; } sendEdit(JSON.parse(t.dataset.edel)).then(function () { $('dlg').close(); toast('Deleted'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; }); return; }
+    if (t.dataset.close !== undefined) return $('dlg').close();
+    if (t.dataset.mark) { var grp = t.closest('.mk'); if (grp) { grp.querySelectorAll('.btn').forEach(function (x) { x.classList.remove('on'); }); t.classList.add('on'); } fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function () { toast('Could not save'); }); return; }
+    if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
+    if (t.dataset.go) { var el = document.querySelector('.' + t.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (t.dataset.gh) { ghf = t.dataset.gh; renderGh(); return; }
+    if (t.dataset.tab) { tab = t.dataset.tab; renderProjects(); tick(); return; }
+    if (t.dataset.open) {
+      fetch('/api/open?' + encodeURIComponent(t.dataset.open) + '&' + t.dataset.i, { method: 'POST', headers: { 'X-Hub': 'open' } })
+        .then(function (r) { toast(r.ok ? 'Opened in File Explorer' : r.status === 404 ? 'That folder is not on this laptop any more' : 'Folders can only be opened on the laptop'); })
+        .catch(function () { toast('The hub is not answering'); });
+      return;
+    }
+    if (t.dataset.key) detail(t.dataset.key);
+  });
+
+  /* ---------- live (every second) ---------- */
+  function gauge(pct, mark, col, sub) {
+    var r = 36, C = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0)), a = (mark || 0) / 100 * 2 * Math.PI;
+    // the tick spans only the ring's edge (radius 31 to 46); the number lives inside radius 22, so they cannot touch
+    var m = mark == null ? '' : '<line x1="' + (50 + 31 * Math.sin(a)) + '" y1="' + (50 - 31 * Math.cos(a)) + '" x2="' + (50 + 46 * Math.sin(a)) + '" y2="' + (50 - 46 * Math.cos(a)) + '" stroke="#e8ebf3" stroke-width="3" stroke-linecap="round"><title>how much of the week has passed</title></line>';
+    return '<svg viewBox="0 0 100 100" role="img" aria-label="' + (pct == null ? 'unknown' : Math.round(pct) + ' percent') + '"><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="#262d3d" stroke-width="8"/><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (v / 100 * C) + ' ' + C + '" transform="rotate(-90 50 50)"/>' + m +
+      '<text x="50" y="55" text-anchor="middle" class="gnum">' + (pct == null ? '?' : Math.round(pct) + '%') + '</text><text x="50" y="68" text-anchor="middle" class="gsub">' + sub + '</text></svg>';
+  }
+  function tick() {
+    if (!S || S.loading || stopped) return;
+    var n = now(), L = S.limit || {};
+    $('date').textContent = ist(n, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' }) + ' IST';
+    // weekly
+    var fresh = n < L.resets; // after the reset time, an old snapshot's % no longer applies
+    if (!fresh) { L = Object.assign({}, L, { pct: null, start: L.resets, resets: L.resets + 604800 }); }
+    var gone = Math.max(0, Math.min(100, (n - L.start) / (L.resets - L.start) * 100)), over = L.pct != null && L.pct > gone + 5;
+    $('g-week').innerHTML = gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', 'used');
+    $('t-week').innerHTML = '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' +
+      (L.pct == null ? '' : over ? '<span class="pill" style="color:var(--warm);align-self:flex-start">Using it fast</span>' : '<span class="pill" style="color:var(--good);align-self:flex-start">Safe pace</span>') +
+      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? 'Claude\'s own last reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring adds what you used since.' : 'Rough guess.') + '</span>';
+    // 5 hour
+    var F = L.five;
+    if (F && F.active && F.resets > n) { $('g-five').innerHTML = gauge(F.pct, null, F.pct > 90 ? '#f87171' : F.pct > 70 ? '#f5b84a' : '#38bdf8', 'used'); $('t-five').innerHTML = '<span>Resets in <b>' + until(F.resets - n) + '</b></span><span class="sm">at ' + ist(F.resets, { hour: 'numeric', minute: '2-digit' }) + '.' + (L.real && L.real.five != null ? ' Claude\'s own last reading: <b>' + Math.round(L.real.five) + '%</b>, ' + ago(L.real.at) + '.' : '') + '</span>'; }
+    else if (F) { $('g-five').innerHTML = gauge(0, null, '#38bdf8', 'used'); $('t-five').innerHTML = '<span><b>Fresh</b></span><span class="sm">New 5 hours start with your next message.</span>'; }
+    else { $('g-five').innerHTML = gauge(null, null, '#38bdf8', ''); $('t-five').innerHTML = '<span class="sm">Not known yet. Claude fills it in at session start.</span>'; }
+    var rb = $('rs-big'); if (rb) rb.innerHTML = until(L.resets - n).split(' ')[0] + '<small>to reset</small>';
+    // cache hero
+    var warm = (S.cache || []).filter(function (c) { return c.expires > n; }), c0 = warm[0], live = (S.cache || []).filter(function (c) { return n - c.last < 90; });
+    if (c0) {
+      var rem = c0.expires - n, col = rem < c0.ttl * .25 ? 'var(--warm)' : 'var(--good)';
+      $('c-big').textContent = clock(rem); $('c-big').style.color = col;
+      $('c-bar').style.width = rem / c0.ttl * 100 + '%'; $('c-bar').style.background = col;
+      $('c-txt').innerHTML = warm.length + ' of ' + S.cache.length + ' recent chats are warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be 1 to 2 min behind.</span>' : '');
+    } else { $('c-big').textContent = 'cold'; $('c-big').style.color = 'var(--idle)'; $('c-bar').style.width = '0'; $('c-txt').textContent = 'No warm session. The next message in any session pays full price once.'; }
+    document.querySelectorAll('[data-exp]').forEach(function (e) {
+      var rem = e.dataset.exp - n, cool = rem < e.dataset.ttl * .25;
+      e.className = 'cchip ' + (rem <= 0 ? 'k' : cool ? 'c' : 'w'); e.innerHTML = '<span class="dot"></span>' + (rem > 0 ? clock(rem) : 'cache cold');
+    });
+    document.querySelectorAll('[data-lvl]').forEach(function (e) { var live = n - e.dataset.lvl < 90; e.textContent = live ? 'running now' : 'last reply ' + ago(+e.dataset.lvl); e.className = live ? 'live' : 'muted'; });
+    document.querySelectorAll('[data-bexp]').forEach(function (e) { var rem = Math.max(0, e.dataset.bexp - n); e.style.width = rem / e.dataset.ttl * 100 + '%'; e.style.background = rem < e.dataset.ttl * .25 ? 'var(--warm)' : 'var(--good)'; });
+    document.querySelectorAll('[data-texp]').forEach(function (e) { var rem = e.dataset.texp - n, cool = rem < e.dataset.ttl * .25; e.textContent = rem > 0 ? clock(rem) + (cool ? ' cooling' : ' warm') : 'cold'; e.style.color = rem <= 0 ? 'var(--idle)' : cool ? 'var(--warm)' : 'var(--good)'; });
+  }
+
+  /* ---------- load ---------- */
+  function render() { renderOverview(); renderModels(); renderDays(); renderGh(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
+  /* ---------- cloud copy (phone): encrypted snapshot on GitHub, decrypted here ---------- */
+  var CLOUD = /github\.io$/.test(location.hostname), DATA_URL = 'https://raw.githubusercontent.com/Burthcer/command-center-view/data/data.enc.json';
+  if (CLOUD) { var ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = 'manifest.webmanifest'; document.head.appendChild(ml); }
+  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (x) {} }
+  function stored(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }
+  function b64(x) { return Uint8Array.from(atob(x), function (c) { return c.charCodeAt(0); }); }
+  function decrypt(env, pass) {
+    // the key is derived once (slow, 600k rounds) and remembered with the passphrase, so later loads are instant
+    var cached = null; try { cached = JSON.parse(stored('hubkd') || 'null'); } catch (x) {}
+    var getKey = cached && cached.salt === env.salt && cached.pass === pass
+      ? crypto.subtle.importKey('raw', b64(cached.key), 'AES-GCM', false, ['decrypt'])
+      : crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (km) {
+          return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(env.salt), iterations: env.iter, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+        }).then(function (k) { return crypto.subtle.exportKey('raw', k).then(function (raw) { store('hubkd', JSON.stringify({ salt: env.salt, pass: pass, key: btoa(String.fromCharCode.apply(null, new Uint8Array(raw))) })); return k; }); });
+    return getKey.then(function (key) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(env.iv) }, key, b64(env.ct)); })
+      .then(function (buf) { return JSON.parse(new TextDecoder().decode(buf)); });
+  }
+  var lastEnvAt = 0, cloudBusy = false;
+  function loadCloud() {
+    var m = /[#&]k=([a-z0-9-]+)/i.exec(location.hash);
+    if (m) { store('hubk', m[1].toLowerCase()); history.replaceState(null, '', location.pathname); }
+    var pass = stored('hubk');
+    if (!pass) { $('keyform').style.display = 'flex'; $('date').textContent = 'Locked'; return; }
+    if (cloudBusy) return; cloudBusy = true;
+    fetch(DATA_URL + '?t=' + Math.floor(Date.now() / 30000)).then(function (r) { if (!r.ok) throw new Error('snapshot not found yet (' + r.status + ')'); return r.json(); }).then(function (env) {
+      if (env.at === lastEnvAt) return null;
+      lastEnvAt = env.at;
+      return decrypt(env, pass).then(function (d) { d.__at = env.at; return d; }, function () { throw new Error('WRONGKEY'); });
+    }).then(function (d) {
+      cloudBusy = false;
+      if (!d) { showSync(); return; }
+      $('err').style.display = 'none'; $('keyform').style.display = 'none';
+      off = 0; $('res').textContent = 'cloud copy';
+      S = d; sig = JSON.stringify(Object.assign({}, d, { now: 0 })); render(); showSync();
+    }).catch(function (e) {
+      cloudBusy = false;
+      if (e.message === 'WRONGKEY') { store('hubk', null); $('keyform').style.display = 'flex'; showErr('That passphrase did not unlock the data. Check it and try again.'); }
+      else showErr(e instanceof TypeError ? "Can't reach GitHub · check the phone's internet" : e.message);
+    });
+  }
+  function showSync() {
+    if (!S || !S.__at) return;
+    var a = now() - S.__at, el = $('sync');
+    el.style.display = 'block';
+    el.innerHTML = 'Cloud copy · laptop last synced <b style="color:var(--text)">' + ago(S.__at) + '</b>' + (a > 3600 ? ' · the laptop is probably off, so this is how things were then' : '');
+  }
+  $('ghq').addEventListener('input', function () { ghq = this.value; if (S) renderGh(); });
+  $('keyform').addEventListener('submit', function (e) { e.preventDefault(); var v = $('keyin').value.trim().toLowerCase(); if (v) { store('hubk', v); lastEnvAt = 0; loadCloud(); } });
+
+  function load() {
+    if (stopped) return;
+    if (CLOUD) return loadCloud();
+    fetch('/api/state').then(function (r) { if (!r.ok) throw new Error('server answered ' + r.status); return r.json(); }).then(function (d) {
+      $('err').style.display = 'none';
+      if (d.loading) { $('date').textContent = 'Starting up… reading Claude Code logs (about 15 seconds)'; return; }
+      off = d.now - Date.now() / 1000;
+      if (d.self) $('res').innerHTML = 'hub: <b>' + d.self.cpu.toFixed(1) + '% CPU</b> · <b>' + Math.round(d.self.ramMb) + ' MB</b>';
+      var s = JSON.stringify(Object.assign({}, d, { now: 0, self: 0 }));
+      S = d;
+      if (s !== sig) { sig = s; render(); }
+    }).catch(function (e) {
+      showErr(e instanceof TypeError ? "Can't reach the hub · showing the last data · is the laptop on and Tailscale on? (open Command Center on the laptop to start the hub)" : 'Page error: ' + e.message);
+    });
+  }
+  if (LOCAL) {
+    $('plink').hidden = false;
+    $('plink').addEventListener('click', function () {
+      fetch('/api/phonelink', { method: 'POST', headers: { 'X-Hub': 'link' } }).then(function (r) { return r.json(); }).then(function (d) {
+        $('dbody').innerHTML = '<div class="d-h"><h3>Phone link</h3><button type="button" class="x" data-close aria-label="Close">×</button></div>' +
+          '<div class="note">Open this link on your phone once. It unlocks the cloud copy and remembers the passphrase on that phone. Anyone with the link can read your dashboard, so only send it to yourself.</div>' +
+          '<div class="row"><b>Link</b><div><code style="font-family:var(--mono);font-size:12px;overflow-wrap:anywhere">' + esc(d.url) + '</code><button type="button" class="btn" style="align-self:flex-start" id="cp1">Copy link</button></div></div>' +
+          '<div class="row"><b>Passphrase</b><div><code style="font-family:var(--mono);font-size:15px">' + esc(d.pass) + '</code><button type="button" class="btn" style="align-self:flex-start" id="cp2">Copy passphrase</button></div></div>' +
+          '<div class="note">The laptop sends an encrypted copy to GitHub about every 10 minutes while it is on (only when something changed). Without the passphrase it is unreadable.</div>';
+        document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').focus();
+        [['cp1', d.url], ['cp2', d.pass]].forEach(function (x) { $(x[0]).addEventListener('click', function () { (navigator.clipboard ? navigator.clipboard.writeText(x[1]) : Promise.reject()).then(function () { toast('Copied'); }, function () { toast('Copy failed, select the text instead'); }); }); });
+      }).catch(function () { toast('Could not get the link'); });
+    });
+    $('stop').hidden = false;
+    $('stop').addEventListener('click', function () {
+      if (!confirm('Shut down the hub?\n\nThe dashboard stops working (also on your phone) until you open Command Center again on this laptop.')) return;
+      fetch('/api/stop', { method: 'POST', headers: { 'X-Hub': 'stop' } }).catch(function () {}).then(function () {
+        stopped = true;
+        $('app').innerHTML = '<div class="tile" style="margin-top:20vh;text-align:center"><h1>The hub is off</h1><p class="muted">Open Command Center from the Start menu to start it again.</p></div>';
+      });
+    });
+  }
+  load();
+  setInterval(load, 3000);
+  setInterval(function () { tick(); if (CLOUD) showSync(); }, 1000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+})();
+</script>
+<script>/* "New look" extras, run after the page. Layout and colour only; never touches data. */
+(function () {
+  var m = document.querySelector('.s-models'), d = document.querySelector('.s-days');
+  if (m && d) { var w = document.createElement('div'); w.className = 'pair'; m.parentNode.insertBefore(w, m); w.append(m, d); }
+  // phone: tap a limit tile to read the whole explanation
+  document.addEventListener('click', function (e) { var t = e.target.closest('.glance .tile'); if (t && t.querySelector('.gauge')) t.classList.toggle('open'); });
+  // Coming up: colour by kind (post / exam / event / other) instead of by position
+  function kind(n) { n = n.toLowerCase(); return /exam|test|viva/.test(n) ? 'var(--bad)' : /post|linkedin|dev\.to|article/.test(n) ? 'var(--accent)' : /hack|event|meet|fest|contest/.test(n) ? 'var(--warm)' : 'var(--teal)'; }
+  function paint() {
+    var box = document.getElementById('dates'); if (!box) return;
+    box.querySelectorAll('.cd').forEach(function (r) {
+      var big = r.querySelector('.big'), t = r.querySelector('.t'); if (!big || !t || big.id === 'rs-big') return;
+      var c = kind(t.textContent); big.style.color = c;
+      box.querySelectorAll('.tl-track i').forEach(function (b) { if (b.title === t.textContent) b.style.background = c; });
+    });
+  }
+  var box = document.getElementById('dates');
+  if (box) { new MutationObserver(paint).observe(box, { childList: true, subtree: true }); paint(); }
+})();
+</script></body>
+</html>
