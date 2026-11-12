@@ -208,7 +208,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
 @media (max-width: 1100px) { .glance { grid-template-columns: 1fr 1fr; } .pick { grid-column: 1 / -1; } }
 @media (max-width: 900px) {
   .wrap { padding: 12px 12px 0; gap: 12px; }
-  .cols { display: flex; flex-direction: column; gap: 12px; }
+  .cols { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
   .col { display: contents; }               /* lets every section be ordered on its own */
   .s-habits { order: 1; } .s-proj { order: 2; } .s-dates { order: 3; } .s-time { order: 4; } .s-cache { order: 5; } .s-pipes { order: 6; }
   .block { padding: 14px 12px; gap: 10px; }
