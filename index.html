@@ -73,6 +73,12 @@ h2 { font-family: var(--display); font-size: 19px; margin: 0; }
 .note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .empty { font-size: 13.5px; color: var(--muted); padding: 10px 0; }
 
+.hab { flex-wrap: wrap; } .hab-b { display: flex; gap: 6px; width: 100%; padding-top: 6px; }
+.hab-b .btn { padding: 5px 10px; font-size: 12px; }
+.mk { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .mk > b { font: 500 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); min-width: 52px; }
+.mk .btn.on { outline: 2px solid var(--accent, #8b7cff); }
+.live { display: inline-flex; gap: 5px; align-items: center; color: var(--good); font: 500 11px var(--mono); } .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--good); animation: pulse 1.4s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
 /* at a glance (phone only) */
 .s-over { display: none; padding: 6px 12px; gap: 0; }
 .ov-row { display: grid; grid-template-columns: 84px 1fr 14px; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px dashed var(--line); cursor: pointer; }
@@ -303,7 +309,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
       </section>
     </div>
     <div class="col side">
-      <section class="block s-habits"><div class="sec-h"><h2>Today</h2><span>habits · Claude ticks these</span></div><div id="habits"></div></section>
+      <section class="block s-habits"><div class="sec-h"><h2>Today</h2><span>habits · tick them here on the laptop</span></div><div id="habits"></div></section>
       <section class="block s-cache"><div class="sec-h"><h2>Cache, live</h2><span>last 12 hours</span></div><div id="crows" style="display:flex;flex-direction:column;gap:12px"></div>
         <div class="note">While a session is warm, continuing it is cheap. After the timer runs out the next message costs much more. Estimated from the time of the last reply.</div></section>
       <section class="block s-dates"><div class="sec-h"><h2>Coming up</h2><span id="dates-s"></span></div><div id="dates"></div></section>
@@ -343,6 +349,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     if (p.status === 'gone') return { k: 'Folder gone', c: 'var(--idle)', p: 4 };
     if (p.status === 'waiting') return { k: 'Waiting', c: 'var(--teal)', p: 50 };
     var pct = Math.max(6, Math.round((1 - Math.min(p.age, 30) / 30) * 100));
+    if (p.heat) return p.heat === 'hot' ? { k: 'Hot', c: 'var(--hot)', p: Math.max(pct, 80) } : p.heat === 'warm' ? { k: 'Warm', c: 'var(--warm)', p: Math.max(pct, 50) } : { k: 'Cool', c: 'var(--cold)', p: Math.min(pct, 25) };
     if (p.age === 0) return { k: 'Hot', c: 'var(--hot)', p: pct };       // touched today
     if (p.age <= 3) return { k: 'Warm', c: 'var(--warm)', p: pct };      // last 3 days
     return { k: 'Cool', c: 'var(--cold)', p: pct };
@@ -428,8 +435,9 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function renderHabits() {
     $('habits').innerHTML = (S.habits || []).map(function (h) {
       var cells = h.week.map(function (d, i) { return '<div>' + esc(d.wd.charAt(0)) + '<i class="' + (d.done ? 'y' : '') + (i === 6 ? ' t' : '') + '" title="' + esc(d.d) + '">' + (d.done ? '✓' : '') + '</i></div>'; }).join('');
-      var st = h.done ? 'done' : h.due ? 'not done yet' : 'not due today';
-      return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div></div>';
+      var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
+      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">✓ Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '</div>' : '';
+      return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
     }).join('') || '<div class="empty">No habits set.</div>';
   }
   function renderCacheRows() {
@@ -493,6 +501,8 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     b += '<div><span class="lbl" style="margin-bottom:8px">Claude replies per day, last 14 days</span><div class="bars">' + p.spark.map(function (v, i) { return '<div title="' + dayLabel(13 - i) + ': ' + v + ' replies"><i class="' + (v ? '' : 'z') + '" style="height:' + (v ? Math.max(4, v / mx * 100) : 0) + '%"></i></div>'; }).join('') + '</div><div class="bars-x">' + p.spark.map(function (v, i) { return '<span>' + ist(now() - (13 - i) * 86400, { day: 'numeric' }) + '</span>'; }).join('') + '</div></div>';
     b += '<div>';
     b += '<div class="row"><b>Status</b><div><span>' + h.k + ' <span class="muted">(' + by + ')</span></span>' + (p.reason ? '<span class="muted">' + esc(p.reason) + '</span>' : '') + '</div></div>';
+    if (LOCAL) { var mk = function (verb, cur, vals) { return vals.map(function (v) { return '<button type="button" class="btn' + (cur === v ? ' on' : '') + '" data-mark="' + verb + '&' + esc(p.key) + '&' + v + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</button>'; }).join(''); };
+      b += '<div class="row"><b>Mark it</b><div><div class="mk"><b>Warmth</b>' + mk('heat', p.heat || 'auto', ['hot', 'warm', 'cold', 'auto']) + '</div><div class="mk"><b>Status</b>' + mk('status', p.by === 'dev' ? p.status : 'auto', ['working', 'waiting', 'cold', 'done', 'abandoned', 'auto']) + '</div><span class="muted">Your mark is locked in; Claude will not change it.</span></div></div>'; }
     if (rep) b += '<div class="row"><b>Replaced by</b><div><button type="button" class="btn" style="align-self:flex-start" data-key="' + esc(rep.key) + '">' + esc(rep.name) + ' →</button></div></div>';
     b += '<div class="row"><b>Now</b><div>' + (p.now ? esc(p.now) : '<span class="muted">Nothing noted</span>') + '</div></div>';
     b += '<div class="row"><b>Broken</b><div>' + (p.broken ? '<span class="bad">' + esc(p.broken) + '</span>' : '<span class="muted">Nothing noted</span>') + '</div></div>';
@@ -510,9 +520,10 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-open],[data-close],[data-tab],[data-more],[data-go],a,[data-key]');
+    var t = e.target.closest('[data-open],[data-close],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
     if (t.dataset.close !== undefined) return $('dlg').close();
+    if (t.dataset.mark) { fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); sig = ''; load(); }).catch(function () { toast('Could not save'); }); return; }
     if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
     if (t.dataset.go) { var el = document.querySelector('.' + t.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.dataset.tab) { tab = t.dataset.tab; renderProjects(); tick(); return; }
@@ -552,12 +563,12 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     else { $('g-five').innerHTML = gauge(null, null, '#38bdf8', ''); $('t-five').innerHTML = '<span class="sm">Not known yet. Claude fills it in at session start.</span>'; }
     var rb = $('rs-big'); if (rb) rb.innerHTML = until(L.resets - n).split(' ')[0] + '<small>to reset</small>';
     // cache hero
-    var warm = (S.cache || []).filter(function (c) { return c.expires > n; }), c0 = warm[0];
+    var warm = (S.cache || []).filter(function (c) { return c.expires > n; }), c0 = warm[0], live = (S.cache || []).filter(function (c) { return n - c.last < 90; });
     if (c0) {
       var rem = c0.expires - n, col = rem < c0.ttl * .25 ? 'var(--warm)' : 'var(--good)';
       $('c-big').textContent = clock(rem); $('c-big').style.color = col;
       $('c-bar').style.width = rem / c0.ttl * 100 + '%'; $('c-bar').style.background = col;
-      $('c-txt').innerHTML = '<b style="color:var(--text)">' + esc(c0.project) + '</b> · last reply ' + ago(c0.last) + ', cheap to continue until ' + ist(c0.expires, { hour: 'numeric', minute: '2-digit' }) + '. ' + warm.length + ' of ' + S.cache.length + ' recent sessions warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be ~10 min behind.</span>' : '');
+      $('c-txt').innerHTML = (live.length ? '<span class="live">running now: ' + live.map(function (c) { return esc(c.project); }).join(', ') + '</span> · ' : '') + '<b style="color:var(--text)">' + esc(c0.project) + '</b> · last reply ' + ago(c0.last) + ', cheap to continue until ' + ist(c0.expires, { hour: 'numeric', minute: '2-digit' }) + '. ' + warm.length + ' of ' + S.cache.length + ' recent sessions warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be ~1-2 min behind.</span>' : '');
     } else { $('c-big').textContent = 'cold'; $('c-big').style.color = 'var(--idle)'; $('c-bar').style.width = '0'; $('c-txt').textContent = 'No warm session. The next message in any session pays full price once.'; }
     document.querySelectorAll('[data-exp]').forEach(function (e) {
       var rem = e.dataset.exp - n, cool = rem < e.dataset.ttl * .25;
@@ -575,10 +586,14 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function stored(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }
   function b64(x) { return Uint8Array.from(atob(x), function (c) { return c.charCodeAt(0); }); }
   function decrypt(env, pass) {
-    var enc = new TextEncoder();
-    return crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (km) {
-      return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(env.salt), iterations: env.iter, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-    }).then(function (key) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(env.iv) }, key, b64(env.ct)); })
+    // the key is derived once (slow, 600k rounds) and remembered with the passphrase, so later loads are instant
+    var cached = null; try { cached = JSON.parse(stored('hubkd') || 'null'); } catch (x) {}
+    var getKey = cached && cached.salt === env.salt && cached.pass === pass
+      ? crypto.subtle.importKey('raw', b64(cached.key), 'AES-GCM', false, ['decrypt'])
+      : crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']).then(function (km) {
+          return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(env.salt), iterations: env.iter, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+        }).then(function (k) { return crypto.subtle.exportKey('raw', k).then(function (raw) { store('hubkd', JSON.stringify({ salt: env.salt, pass: pass, key: btoa(String.fromCharCode.apply(null, new Uint8Array(raw))) })); return k; }); });
+    return getKey.then(function (key) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(env.iv) }, key, b64(env.ct)); })
       .then(function (buf) { return JSON.parse(new TextDecoder().decode(buf)); });
   }
   var lastEnvAt = 0, cloudBusy = false;
@@ -588,7 +603,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     var pass = stored('hubk');
     if (!pass) { $('keyform').style.display = 'flex'; $('date').textContent = 'Locked'; return; }
     if (cloudBusy) return; cloudBusy = true;
-    fetch(DATA_URL + '?t=' + Math.floor(Date.now() / 120000)).then(function (r) { if (!r.ok) throw new Error('snapshot not found yet (' + r.status + ')'); return r.json(); }).then(function (env) {
+    fetch(DATA_URL + '?t=' + Math.floor(Date.now() / 30000)).then(function (r) { if (!r.ok) throw new Error('snapshot not found yet (' + r.status + ')'); return r.json(); }).then(function (env) {
       if (env.at === lastEnvAt) return null;
       lastEnvAt = env.at;
       return decrypt(env, pass).then(function (d) { d.__at = env.at; return d; }, function () { throw new Error('WRONGKEY'); });
