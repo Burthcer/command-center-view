@@ -284,6 +284,8 @@ h1 { font-weight: 600; letter-spacing: -.02em; } h2 { font-size: 17px; font-weig
 .lv { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
 .lv:first-child { margin-top: 8px; } .lv b { font-weight: 600; } .lv small { font-size: 12.5px; } .lv .live { color: var(--good); }
 .lv-d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.hab-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; font-size: 13px; color: var(--muted); } .hab-f b { color: var(--text); font-weight: 600; }
+.mk { margin-bottom: 6px; }
 .dnote { margin-top: 4px; font-size: 12.5px; color: var(--warm); }
 a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: var(--muted); } a.cr .bdg.synced { color: var(--good); } a.cr .bdg.warn { color: var(--warm); }
 .s-gh { order: 7; } .s-gh .tabs { flex-wrap: wrap; }
@@ -333,12 +335,13 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
       <section class="block s-gh">
         <div class="sec-h"><h2>GitHub</h2><span id="ghn"></span></div>
         <div class="tabs" id="ghtabs" role="group" aria-label="Which repositories to show"></div>
+        <div class="note">Has a folder here = a copy of it exists on this laptop. No folder here = it lives only on GitHub. Public = anyone can see it. Private = only you.</div>
         <input id="ghq" type="search" placeholder="Find a repository" aria-label="Find a repository" autocomplete="off">
         <div id="ghl" class="rows"></div>
       </section>
     </div>
     <div class="col side">
-      <section class="block s-habits"><div class="sec-h"><h2>Today</h2><span>habits · tick them here on the laptop</span></div><div id="habits"></div></section>
+      <section class="block s-habits"><div class="sec-h"><h2>Routines</h2><span>things you repeat · tick them here on the laptop</span></div><div id="habits"></div></section>
       <section class="block s-cache"><div class="sec-h"><h2>Cache, live</h2><span>last 12 hours</span></div><div id="crows" style="display:flex;flex-direction:column;gap:12px"></div>
         <div class="note">While a session is warm, continuing it is cheap. After the timer runs out the next message costs much more. Estimated from the time of the last reply.</div></section>
       <section class="block s-dates"><div class="sec-h"><h2>Coming up</h2><span id="dates-s"></span></div><div id="dates"></div></section>
@@ -378,10 +381,10 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     if (p.status === 'gone') return { k: 'Folder gone', c: 'var(--idle)', p: 4 };
     if (p.status === 'waiting') return { k: 'Waiting', c: 'var(--teal)', p: 50 };
     var pct = Math.max(6, Math.round((1 - Math.min(p.age, 30) / 30) * 100));
-    if (p.heat) return p.heat === 'hot' ? { k: 'Hot', c: 'var(--hot)', p: Math.max(pct, 80) } : p.heat === 'warm' ? { k: 'Warm', c: 'var(--warm)', p: Math.max(pct, 50) } : { k: 'Cool', c: 'var(--cold)', p: Math.min(pct, 25) };
+    if (p.heat) return p.heat === 'hot' ? { k: 'Hot', c: 'var(--hot)', p: Math.max(pct, 80) } : p.heat === 'warm' ? { k: 'Warm', c: 'var(--warm)', p: Math.max(pct, 50) } : { k: 'Cold', c: 'var(--cold)', p: Math.min(pct, 25) };
     if (p.age === 0) return { k: 'Hot', c: 'var(--hot)', p: pct };       // touched today
     if (p.age <= 3) return { k: 'Warm', c: 'var(--warm)', p: pct };      // last 3 days
-    return { k: 'Cool', c: 'var(--cold)', p: pct };
+    return { k: 'Cold', c: 'var(--cold)', p: pct };
   }
   function dtext(p) { return p.status === 'done' ? '✓' : p.status === 'abandoned' || p.status === 'gone' ? '✕' : p.age > 999 ? '–' : p.age === 0 ? 'today' : p.age + 'd'; }
   function ring(p, sm) { var h = heat(p); return '<div class="ring' + (sm ? ' sm' : '') + '" style="--p:' + h.p + '%;--hc:' + h.c + '"><b>' + dtext(p) + '</b></div>'; }
@@ -428,7 +431,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   function renderProjects() {
     var g = { alive: [], cold: [], done: [], dead: [], misc: [] };
     S.projects.forEach(function (p) { var k = group(p); if (k) g[k].push(p); });
-    var T = [['pinned', 'Pinned'], ['alive', 'Working on'], ['cold', 'Cold'], ['done', 'Done'], ['dead', 'Graveyard'], ['misc', 'One-offs'], ['gh', 'Only on GitHub']];
+    var T = [['pinned', 'Pinned'], ['alive', 'Working on'], ['cold', 'Cold'], ['done', 'Done'], ['dead', 'Graveyard'], ['misc', 'One-offs']];
     g.pinned = S.projects.filter(function (p) { return p.pinned && group(p); });
     if (!tabInit) { tabInit = true; if (g.pinned.length) tab = 'pinned'; }
     var n = function (k) { return k === 'gh' ? (S.githubOnly || []).length : g[k].length; };
@@ -449,13 +452,13 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   function renderGh() {
     var all = S.ghAll || [];
     var F = [['all', 'All', function () { return true; }], ['public', 'Public', function (r) { return r.vis === 'public'; }], ['private', 'Private', function (r) { return r.vis === 'private'; }],
-      ['laptop', 'On this laptop', function (r) { return !!r.project; }], ['only', 'Only on GitHub', function (r) { return !r.project; }], ['fork', 'Forks', function (r) { return r.fork; }], ['arch', 'Archived', function (r) { return r.archived; }]];
+      ['laptop', 'Has a folder here', function (r) { return !!r.project; }], ['only', 'No folder here', function (r) { return !r.project; }], ['fork', 'Forks', function (r) { return r.fork; }], ['arch', 'Archived', function (r) { return r.archived; }]];
     $('ghtabs').innerHTML = F.map(function (f) { return '<button type="button" class="tab" data-gh="' + f[0] + '" aria-pressed="' + (ghf === f[0]) + '">' + f[1] + '<b>' + all.filter(f[2]).length + '</b></button>'; }).join('');
     var cur = F.filter(function (f) { return f[0] === ghf; })[0], q = ghq.trim().toLowerCase();
     var list = all.filter(cur[2]).filter(function (r) { return !q || (r.name + ' ' + (r.desc || '') + ' ' + (r.lang || '')).toLowerCase().indexOf(q) >= 0; });
     $('ghn').textContent = all.length ? list.length + ' of ' + all.length + ' repositories' : '';
     $('ghl').innerHTML = list.map(function (r) {
-      return '<a class="cr gh" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">' + (r.desc ? esc(r.desc) + ' · ' : '') + [r.lang, r.branches + (r.branches === 1 ? ' branch' : ' branches'), 'pushed ' + (r.pushed ? ago(Date.parse(r.pushed) / 1000) : '?'), r.project ? 'on this laptop as ' + esc(r.project) : 'not on this laptop'].filter(Boolean).join(' · ') + '</div></div><span class="bdg ' + (r.vis === 'private' ? 'warn' : 'synced') + '">' + (r.vis || '?') + '</span>' + (r.fork ? '<span class="bdg">fork</span>' : '') + (r.archived ? '<span class="bdg">archived</span>' : '') + '</a>';
+      return '<a class="cr gh" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">' + (r.desc ? esc(r.desc) + ' · ' : '') + [r.lang, r.branches + (r.branches === 1 ? ' branch' : ' branches'), 'pushed ' + (r.pushed ? ago(Date.parse(r.pushed) / 1000) : '?'), r.project ? 'folder on laptop: ' + esc((r.path || '').replace(/\//g, '\\')) : 'not on this laptop'].filter(Boolean).join(' · ') + '</div></div><span class="bdg ' + (r.vis === 'private' ? 'warn' : 'synced') + '">' + (r.vis || '?') + '</span>' + (r.fork ? '<span class="bdg">fork</span>' : '') + (r.archived ? '<span class="bdg">archived</span>' : '') + '</a>';
     }).join('') || '<div class="empty">' + (all.length ? 'No repository matches.' : 'GitHub list not loaded yet.') + '</div>';
   }
   function renderTime() {
@@ -483,7 +486,10 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
       var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
       var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '</div>' : '';
       return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
-    }).join('') || '<div class="empty">No habits set.</div>';
+    }).join('') || '<div class="empty">No routines set.</div>';
+    $('habits').innerHTML += S.projects.filter(function (p) { return p.status === 'routine'; }).map(function (p) {
+      return '<div class="hab-f"><span>Folder behind these: <b data-key="' + esc(p.key) + '" style="cursor:pointer">' + esc(p.name) + '</b> · last Claude session ' + ago(p.lastSession) + '</span>' + (LOCAL && p.paths && p.paths.length ? '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="0">Open folder</button>' : '') + '</div>';
+    }).join('');
   }
   function renderChats() {
     $('c-list').innerHTML = (S.cache || []).slice(0, 4).map(function (c) {
@@ -553,8 +559,12 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     b += '<div><span class="lbl" style="margin-bottom:8px">Claude replies per day, last 14 days</span><div class="bars">' + p.spark.map(function (v, i) { return '<div title="' + dayLabel(13 - i) + ': ' + v + ' replies"><i class="' + (v ? '' : 'z') + '" style="height:' + (v ? Math.max(4, v / mx * 100) : 0) + '%"></i></div>'; }).join('') + '</div><div class="bars-x">' + p.spark.map(function (v, i) { return '<span>' + ist(now() - (13 - i) * 86400, { day: 'numeric' }) + '</span>'; }).join('') + '</div></div>';
     b += '<div>';
     b += '<div class="row"><b>Status</b><div><span>' + h.k + ' <span class="muted">(' + by + ')</span></span>' + (p.reason ? '<span class="muted">' + esc(p.reason) + '</span>' : '') + '</div></div>';
-    if (LOCAL) { var mk = function (verb, cur, vals) { return vals.map(function (v) { return '<button type="button" class="btn' + (cur === v ? ' on' : '') + '" data-mark="' + verb + '&' + esc(p.key) + '&' + v + '">' + v.charAt(0).toUpperCase() + v.slice(1) + '</button>'; }).join(''); };
-      b += '<div class="row"><b>Mark it</b><div><div class="mk"><b>Warmth</b>' + mk('heat', p.heat || 'auto', ['hot', 'warm', 'cold', 'auto']) + '</div><div class="mk"><b>Status</b>' + mk('status', p.by === 'dev' ? p.status : 'auto', ['working', 'waiting', 'cold', 'done', 'abandoned', 'auto']) + '</div><span class="muted">Your mark is locked in; Claude will not change it.</span></div></div>'; }
+    if (LOCAL) {
+      var cur = p.by === 'dev' ? (p.status === 'working' ? (p.heat || '') : p.status) : 'auto';
+      var autoNow = p.autoStatus === 'gone' ? 'Folder gone' : p.autoStatus === 'cold' ? 'Cold' : p.autoHeat.charAt(0).toUpperCase() + p.autoHeat.slice(1);
+      var opts = [['hot', 'Hot'], ['warm', 'Warm'], ['cold', 'Cold'], ['waiting', 'Waiting'], ['done', 'Done'], ['abandoned', 'Abandoned'], ['routine', 'Routine'], ['auto', 'Auto (it says ' + autoNow + ')']];
+      b += '<div class="row"><b>Mark it</b><div><div class="mk">' + opts.map(function (o) { return '<button type="button" class="btn' + (cur === o[0] ? ' on' : '') + '" data-mark="mark&' + esc(p.key) + '&' + o[0] + '">' + o[1] + '</button>'; }).join('') + '</div><span class="muted">Showing <b style="color:var(--text)">' + h.k + '</b> · ' + (p.by === 'dev' ? 'you set it' : 'worked out automatically') + '. Your mark stays until you pick Auto.</span></div></div>';
+    }
     if (rep) b += '<div class="row"><b>Replaced by</b><div><button type="button" class="btn" style="align-self:flex-start" data-key="' + esc(rep.key) + '">' + esc(rep.name) + ' →</button></div></div>';
     b += '<div class="row"><b>Now</b><div>' + (p.now ? esc(p.now) : '<span class="muted">Nothing noted</span>') + '</div></div>';
     b += '<div class="row"><b>Broken</b><div>' + (p.broken ? '<span class="bad">' + esc(p.broken) + '</span>' : '<span class="muted">Nothing noted</span>') + '</div></div>';
@@ -575,7 +585,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     var t = e.target.closest('[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
     if (t.dataset.close !== undefined) return $('dlg').close();
-    if (t.dataset.mark) { fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); sig = ''; load(); }).catch(function () { toast('Could not save'); }); return; }
+    if (t.dataset.mark) { var grp = t.closest('.mk'); if (grp) { grp.querySelectorAll('.btn').forEach(function (x) { x.classList.remove('on'); }); t.classList.add('on'); } fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function () { toast('Could not save'); }); return; }
     if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
     if (t.dataset.go) { var el = document.querySelector('.' + t.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.dataset.gh) { ghf = t.dataset.gh; renderGh(); return; }
