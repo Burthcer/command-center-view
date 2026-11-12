@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Phone test</title>
+<style>body{margin:0;padding:24px;background:#0d1017;color:#e8ebf3;font:20px/1.5 system-ui,sans-serif}b{color:#a3e635}</style></head>
+<body><h1>Phone test</h1><p>If you can read this, the page itself loads on your phone: <b>step 1 OK</b>.</p>
+<p id="js">Step 2 (JavaScript): not yet…</p><p id="cr">Step 3 (encryption available): checking…</p>
+<script>document.getElementById('js').innerHTML='Step 2 (JavaScript): <b>OK</b>';
+document.getElementById('cr').innerHTML='Step 3 (encryption available): '+(window.crypto&&crypto.subtle?'<b>OK</b>':'<span style="color:#f87171">NO</span>');</script></body></html>
