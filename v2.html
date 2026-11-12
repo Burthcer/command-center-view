@@ -424,6 +424,9 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
   .pair .mu { grid-template-columns: 90px minmax(0, 1fr) 44px; }
   .pair .mu small { grid-column: 1 / -1; text-align: left; }
 }
+.week { order: 3; }
+/* wide windows: wider cards so project names are not cut off (medium windows keep two per row) */
+@media (min-width: 1101px) { .grid { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); } }
 </style></head>
 <body>
 <div class="wrap" id="app">
