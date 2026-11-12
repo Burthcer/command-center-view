@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d1017">
-<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg">
 <title>Command Center</title>
 <style>
@@ -46,7 +45,7 @@ h1 { font-family: var(--display); font-weight: 700; font-size: 28px; letter-spac
 #err { display: none; background: color-mix(in srgb, var(--bad) 14%, var(--surface)); border: 1px solid var(--bad); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
 
 /* glance row */
-.glance { display: grid; grid-template-columns: 4fr 3fr 2.2fr 3fr; gap: 12px; }
+.glance { display: grid; grid-template-columns: 3fr 2.6fr 2.2fr 4.6fr; gap: 12px; }
 .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; }
 .tile small, .lbl { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
 .pick { border-left: 3px solid var(--hot); display: flex; flex-direction: column; gap: 6px; }
@@ -268,6 +267,29 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   .crow small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .bar i, .card { transition: none; } }
+/* polish: same palette, calmer and less template-like */
+.chip, .btn, .pill, .bdg, .tab, .c-meta, .lineage, .sec-h > span, .hab-s, .sparkcap, .cchip, .lbl, .tile small, .ov-row > b, .mk > b, .tl-names, .live { font-family: var(--body); }
+.lbl, .tile small, .ov-row > b, .mk > b { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+h1 { font-weight: 600; letter-spacing: -.02em; } h2 { font-size: 17px; font-weight: 600; }
+.block { border-radius: 10px; border-color: color-mix(in srgb, var(--line) 75%, transparent); }
+.card { border-left: 1px solid var(--line); border-radius: 10px; transition: background .12s; }
+.card:hover { transform: none; border-color: var(--line); background: color-mix(in srgb, var(--surface-2) 88%, white); }
+.cr { border-left: 1px solid var(--line); border-radius: 8px; } .cr:hover { border-color: var(--line); background: color-mix(in srgb, var(--surface-2) 88%, white); }
+.pill { border: 0; border-radius: 4px; font-size: 11.5px; background: color-mix(in srgb, currentColor 15%, transparent); }
+.btn { border-radius: 6px; font-size: 12.5px; } .chip { border-radius: 6px; font-size: 12.5px; }
+.bdg { border-radius: 4px; border: 0; font-size: 11.5px; background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.bdg.synced { background: color-mix(in srgb, var(--good) 14%, transparent); } .bdg.warn { background: color-mix(in srgb, var(--warm) 14%, transparent); }
+.w .dot { box-shadow: none; } .live::before { animation: none; }
+.tile { border-radius: 10px; }
+.lv { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.lv:first-child { margin-top: 8px; } .lv b { font-weight: 600; } .lv small { font-size: 12.5px; } .lv .live { color: var(--good); }
+.lv-d { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.dnote { margin-top: 4px; font-size: 12.5px; color: var(--warm); }
+.s-gh { order: 7; } .s-gh .tabs { flex-wrap: wrap; }
+#ghq { width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 14px; }
+#ghq:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.s-gh .rows { grid-template-columns: 1fr; max-height: 520px; overflow-y: auto; }
+@media (max-width: 900px) { .s-gh .rows { max-height: none; } }
 </style>
 </head>
 <body>
@@ -277,7 +299,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     <div class="top-r">
       <span class="chip" id="res" title="What the hub itself is using on this laptop right now"></span>
       <span class="chip" title="Nothing on this page can change your data. Only Claude writes.">View only</span>
-      <button class="chip" id="plink" type="button" hidden>📱 Phone link</button>
+      <button class="chip" id="plink" type="button" hidden>Phone link</button>
       <button class="chip" id="stop" type="button" hidden>Shut down</button>
     </div>
   </header>
@@ -289,7 +311,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     <div class="tile pick"><small>Claude would suggest</small><b id="pick">…</b><span id="pick-why"></span></div>
     <div class="tile"><small>Weekly limit · estimate</small><div class="gauge"><span id="g-week"></span><div class="g-txt" id="t-week"></div></div></div>
     <div class="tile"><small>5-hour limit · estimate</small><div class="gauge"><span id="g-five"></span><div class="g-txt" id="t-five"></div></div></div>
-    <div class="tile"><small>Cache · live</small><div class="bigtime" id="c-big">--:--</div><div class="bar"><i id="c-bar"></i></div><div class="note" id="c-txt"></div></div>
+    <div class="tile"><small>Cache · live</small><div class="bigtime" id="c-big">--:--</div><div class="bar"><i id="c-bar"></i></div><div class="note" id="c-txt"></div><div id="c-list"></div></div>
   </section>
 
   <section class="block s-over" id="over" aria-label="At a glance"></section>
@@ -306,6 +328,12 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
         <div class="share-leg" id="shareleg"></div>
         <div class="hm" id="hm"></div>
         <div class="note">Brighter square = more Claude replies that day. Click a row for the project's details.</div>
+      </section>
+      <section class="block s-gh">
+        <div class="sec-h"><h2>GitHub</h2><span id="ghn"></span></div>
+        <div class="tabs" id="ghtabs" role="group" aria-label="Which repositories to show"></div>
+        <input id="ghq" type="search" placeholder="Find a repository" aria-label="Find a repository" autocomplete="off">
+        <div id="ghl" class="rows"></div>
       </section>
     </div>
     <div class="col side">
@@ -328,7 +356,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function showErr(m) { var e = document.getElementById('err'); if (e) { e.style.display = 'block'; e.textContent = m; } }
   window.addEventListener('error', function (ev) { showErr('Page error: ' + ev.message + (ev.lineno ? ' (line ' + ev.lineno + ')' : '')); });
   window.addEventListener('unhandledrejection', function (ev) { showErr('Page error: ' + (ev.reason && ev.reason.message || ev.reason)); });
-  var showAll = false, S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
+  var tabInit = false, ghf = 'all', ghq = '', showAll = false, S = null, off = 0, sig = '', tab = 'alive', openKey = null, stopped = false;
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var $ = function (id) { return document.getElementById(id); };
   var PAL = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9']; // fixed order, colour-blind checked
@@ -373,7 +401,8 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function cchip(p) { var c = cacheOf(p); return c ? '<span class="cchip" data-exp="' + c.expires + '" data-ttl="' + c.ttl + '"></span>' : ''; }
   function links(p, full) {
     var h = '';
-    if (LOCAL && p.paths && p.paths.length && p.status !== 'gone') h += '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="0">📁 Open folder</button>';
+    if (LOCAL && p.paths && p.paths.length && p.status !== 'gone') h += '<button type="button" class="btn" data-open="' + esc(p.key) + '" data-i="0">Open folder</button>';
+    if (LOCAL) h += '<button type="button" class="btn" data-mark="pin&' + esc(p.key) + '&' + (p.pinned ? 'off' : 'on') + '">' + (p.pinned ? 'Unpin' : 'Pin') + '</button>';
     if (p.url) h += '<a class="btn" href="' + esc(p.url) + '" target="_blank" rel="noopener">GitHub ↗</a>';
     if (!full) h += '<button type="button" class="btn ghost" data-key="' + esc(p.key) + '">Details</button>';
     return h;
@@ -398,20 +427,35 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   function renderProjects() {
     var g = { alive: [], cold: [], done: [], dead: [], misc: [] };
     S.projects.forEach(function (p) { var k = group(p); if (k) g[k].push(p); });
-    var T = [['alive', 'Working on'], ['cold', 'Cold'], ['done', 'Done'], ['dead', 'Graveyard'], ['misc', 'One-offs'], ['gh', 'Only on GitHub']];
+    var T = [['pinned', 'Pinned'], ['alive', 'Working on'], ['cold', 'Cold'], ['done', 'Done'], ['dead', 'Graveyard'], ['misc', 'One-offs'], ['gh', 'Only on GitHub']];
+    g.pinned = S.projects.filter(function (p) { return p.pinned && group(p); });
+    if (!tabInit) { tabInit = true; if (g.pinned.length) tab = 'pinned'; }
     var n = function (k) { return k === 'gh' ? (S.githubOnly || []).length : g[k].length; };
     $('tabs').innerHTML = T.map(function (t) { return '<button type="button" class="tab" data-tab="' + t[0] + '" aria-pressed="' + (tab === t[0]) + '">' + t[1] + '<b>' + n(t[0]) + '</b></button>'; }).join('');
     var h;
     if (tab === 'gh') h = '<div class="rows">' + (S.githubOnly || []).map(function (r) {
       return '<a class="cr" style="text-decoration:none" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">last pushed ' + esc((r.pushed || '').slice(0, 10)) + ' · not on this laptop</div></div><span class="bdg">GitHub ↗</span></a>';
     }).join('') + '</div>';
+    else if (tab === 'pinned') h = '<div class="grid">' + g.pinned.map(card).join('') + '</div>';
     else if (tab === 'alive') {
       var small = window.matchMedia('(max-width: 900px)').matches, list = small && !showAll ? g.alive.slice(0, 5) : g.alive;
       h = '<div class="grid">' + list.map(card).join('') + '</div>' + (small && g.alive.length > 5 ? '<button type="button" class="btn" data-more style="align-self:center;margin-top:10px;padding:10px 16px">' + (showAll ? 'Show fewer' : 'Show all ' + g.alive.length + ' (older ones)') + '</button>' : '');
     }
     else h = '<div class="rows">' + g[tab].map(crow).join('') + '</div>';
-    var note = { dead: 'Claude never suggests these.', done: 'Finished. Claude only suggests small fixes here if you ask.', misc: 'One-time folders. Kept out of the way.', cold: 'Not touched in over two weeks. Claude may suggest waking one up.' }[tab];
+    var note = { pinned: LOCAL ? 'Your pinned projects. Pin or unpin one from its card or details.' : 'Your pinned projects.', dead: 'Claude never suggests these.', done: 'Finished. Claude only suggests small fixes here if you ask.', misc: 'One-time folders. Kept out of the way.', cold: 'Not touched in over two weeks. Claude may suggest waking one up.' }[tab];
     $('plist').innerHTML = (n(tab) ? h : '<div class="empty">Nothing here.</div>') + (note ? '<div class="note" style="margin-top:10px">' + note + '</div>' : '');
+  }
+  function renderGh() {
+    var all = S.ghAll || [];
+    var F = [['all', 'All', function () { return true; }], ['public', 'Public', function (r) { return r.vis === 'public'; }], ['private', 'Private', function (r) { return r.vis === 'private'; }],
+      ['laptop', 'On this laptop', function (r) { return !!r.project; }], ['only', 'Only on GitHub', function (r) { return !r.project; }], ['fork', 'Forks', function (r) { return r.fork; }], ['arch', 'Archived', function (r) { return r.archived; }]];
+    $('ghtabs').innerHTML = F.map(function (f) { return '<button type="button" class="tab" data-gh="' + f[0] + '" aria-pressed="' + (ghf === f[0]) + '">' + f[1] + '<b>' + all.filter(f[2]).length + '</b></button>'; }).join('');
+    var cur = F.filter(function (f) { return f[0] === ghf; })[0], q = ghq.trim().toLowerCase();
+    var list = all.filter(cur[2]).filter(function (r) { return !q || (r.name + ' ' + (r.desc || '') + ' ' + (r.lang || '')).toLowerCase().indexOf(q) >= 0; });
+    $('ghn').textContent = all.length ? list.length + ' of ' + all.length + ' repositories' : '';
+    $('ghl').innerHTML = list.map(function (r) {
+      return '<a class="cr gh" href="' + esc(r.url) + '" target="_blank" rel="noopener"><div class="mid"><div class="name">' + esc(r.name) + '</div><div class="lineage">' + (r.desc ? esc(r.desc) + ' · ' : '') + [r.lang, r.branches + (r.branches === 1 ? ' branch' : ' branches'), 'pushed ' + (r.pushed ? ago(Date.parse(r.pushed) / 1000) : '?'), r.project ? 'on this laptop as ' + esc(r.project) : 'not on this laptop'].filter(Boolean).join(' · ') + '</div></div><span class="bdg ' + (r.vis === 'private' ? 'warn' : 'synced') + '">' + (r.vis || '?') + '</span>' + (r.fork ? '<span class="bdg">fork</span>' : '') + (r.archived ? '<span class="bdg">archived</span>' : '') + '</a>';
+    }).join('') || '<div class="empty">' + (all.length ? 'No repository matches.' : 'GitHub list not loaded yet.') + '</div>';
   }
   function renderTime() {
     var act = S.projects.filter(function (p) { return p.weekUnits > 0 && group(p); }).sort(function (a, b) { return b.weekUnits - a.weekUnits; });
@@ -436,11 +480,18 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     $('habits').innerHTML = (S.habits || []).map(function (h) {
       var cells = h.week.map(function (d, i) { return '<div>' + esc(d.wd.charAt(0)) + '<i class="' + (d.done ? 'y' : '') + (i === 6 ? ' t' : '') + '" title="' + esc(d.d) + '">' + (d.done ? '✓' : '') + '</i></div>'; }).join('');
       var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
-      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">✓ Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '</div>' : '';
+      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '</div>' : '';
       return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
     }).join('') || '<div class="empty">No habits set.</div>';
   }
+  function renderChats() {
+    $('c-list').innerHTML = (S.cache || []).slice(0, 4).map(function (c) {
+      var det = esc((c.model || '').replace('claude-', '')) + ' · chat ' + esc(c.session) + ' · ' + (c.replies || 0) + ' replies · started ' + ist(c.started, { hour: 'numeric', minute: '2-digit' });
+      return '<div class="lv"><div><b>' + esc(c.project || 'unknown') + '</b> <small data-lvl="' + c.last + '"></small><div class="lv-d">' + det + '</div></div><span class="cchip" data-exp="' + c.expires + '" data-ttl="' + c.ttl + '"></span></div>';
+    }).join('');
+  }
   function renderCacheRows() {
+    renderChats();
     $('crows').innerHTML = (S.cache || []).slice(0, 6).map(function (c) {
       return '<div class="crow"><span>' + esc(c.project || 'unknown') + '<small>' + esc((c.model || '').replace('claude-', '')) + (c.ttlKnown ? '' : ' · window assumed') + '</small></span><div class="bar"><i data-bexp="' + c.expires + '" data-ttl="' + c.ttl + '"></i></div><span class="ctime" data-texp="' + c.expires + '" data-ttl="' + c.ttl + '"></span></div>';
     }).join('') || '<div class="empty">No Claude sessions in the last 12 hours.</div>';
@@ -454,7 +505,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     }).join('') + '<div class="tl-names"><span>today</span><span>' + end + '</span></div></div>' : '';
     h += ds.map(function (d, i) {
       var big = d.active ? d.daysLeft + 'd' : d.daysTo + 'd', s = d.active ? 'left' : 'to start';
-      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div></div></div>';
+      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div></div>';
     }).join('');
     h += '<div class="cd"><div class="big" id="rs-big" style="color:var(--sky)"></div><div><div class="t">Claude weekly limit resets</div><div class="s">Every Tuesday, 7:30 PM</div></div></div>';
     $('dates').innerHTML = h;
@@ -474,7 +525,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     var alive = S.projects.filter(function (p) { return group(p) === 'alive'; }).slice(0, 3);
     var pipes = (S.pipelines || []).map(function (p) { var last = p.stages[p.stages.length - 1]; return esc(p.name.replace(/ to phone| loop/, '')) + ' <small>' + (p.items || []).filter(function (x) { return x.stage !== last; }).length + ' in progress</small>'; }).join(' · ');
     var hab = (S.habits || []).filter(function (h) { return h.due; }), hd = hab.filter(function (h) { return h.done; }).length;
-    var ds = (S.dates || []).slice(0, 2).map(function (d) { return esc(d.name) + ' <small>' + (d.active ? d.daysLeft + 'd left' : 'in ' + d.daysTo + 'd') + '</small>'; });
+    var ds = (S.dates || []).slice(0, 2).map(function (d) { return esc(d.name) + ' <small>' + (d.active ? d.daysLeft + 'd left' : 'in ' + d.daysTo + 'd') + (d.note ? ' · ' + esc(d.note) : '') + '</small>'; });
     var L = S.limit || {}; ds.push('Limit resets <small>in ' + until(L.resets - now()).split(' ')[0] + '</small>');
     var row = function (go, k, v) { return '<div class="ov-row" data-go="' + go + '"><b>' + k + '</b><span>' + v + '</span><i>›</i></div>'; };
     $('over').innerHTML = row('s-habits', 'Today', hd + ' of ' + hab.length + ' habits done') +
@@ -520,12 +571,13 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-open],[data-close],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
+    var t = e.target.closest('[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
     if (t.dataset.close !== undefined) return $('dlg').close();
     if (t.dataset.mark) { fetch('/api/mark?' + t.dataset.mark, { method: 'POST', headers: { 'X-Hub': 'mark' } }).then(function (r) { if (!r.ok) throw 0; toast('Saved'); sig = ''; load(); }).catch(function () { toast('Could not save'); }); return; }
     if (t.dataset.more !== undefined) { showAll = !showAll; renderProjects(); tick(); return; }
     if (t.dataset.go) { var el = document.querySelector('.' + t.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (t.dataset.gh) { ghf = t.dataset.gh; renderGh(); return; }
     if (t.dataset.tab) { tab = t.dataset.tab; renderProjects(); tick(); return; }
     if (t.dataset.open) {
       fetch('/api/open?' + encodeURIComponent(t.dataset.open) + '&' + t.dataset.i, { method: 'POST', headers: { 'X-Hub': 'open' } })
@@ -568,20 +620,22 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
       var rem = c0.expires - n, col = rem < c0.ttl * .25 ? 'var(--warm)' : 'var(--good)';
       $('c-big').textContent = clock(rem); $('c-big').style.color = col;
       $('c-bar').style.width = rem / c0.ttl * 100 + '%'; $('c-bar').style.background = col;
-      $('c-txt').innerHTML = (live.length ? '<span class="live">running now: ' + live.map(function (c) { return esc(c.project); }).join(', ') + '</span> · ' : '') + '<b style="color:var(--text)">' + esc(c0.project) + '</b> · last reply ' + ago(c0.last) + ', cheap to continue until ' + ist(c0.expires, { hour: 'numeric', minute: '2-digit' }) + '. ' + warm.length + ' of ' + S.cache.length + ' recent sessions warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be ~1-2 min behind.</span>' : '');
+      $('c-txt').innerHTML = warm.length + ' of ' + S.cache.length + ' recent chats are warm.' + (CLOUD ? ' <span style="color:var(--warm)">Phone copy can be 1 to 2 min behind.</span>' : '');
     } else { $('c-big').textContent = 'cold'; $('c-big').style.color = 'var(--idle)'; $('c-bar').style.width = '0'; $('c-txt').textContent = 'No warm session. The next message in any session pays full price once.'; }
     document.querySelectorAll('[data-exp]').forEach(function (e) {
       var rem = e.dataset.exp - n, cool = rem < e.dataset.ttl * .25;
       e.className = 'cchip ' + (rem <= 0 ? 'k' : cool ? 'c' : 'w'); e.innerHTML = '<span class="dot"></span>' + (rem > 0 ? clock(rem) : 'cache cold');
     });
+    document.querySelectorAll('[data-lvl]').forEach(function (e) { var live = n - e.dataset.lvl < 90; e.textContent = live ? 'running now' : 'last reply ' + ago(+e.dataset.lvl); e.className = live ? 'live' : 'muted'; });
     document.querySelectorAll('[data-bexp]').forEach(function (e) { var rem = Math.max(0, e.dataset.bexp - n); e.style.width = rem / e.dataset.ttl * 100 + '%'; e.style.background = rem < e.dataset.ttl * .25 ? 'var(--warm)' : 'var(--good)'; });
     document.querySelectorAll('[data-texp]').forEach(function (e) { var rem = e.dataset.texp - n, cool = rem < e.dataset.ttl * .25; e.textContent = rem > 0 ? clock(rem) + (cool ? ' cooling' : ' warm') : 'cold'; e.style.color = rem <= 0 ? 'var(--idle)' : cool ? 'var(--warm)' : 'var(--good)'; });
   }
 
   /* ---------- load ---------- */
-  function render() { renderOverview(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
+  function render() { renderOverview(); renderGh(); renderPick(); renderProjects(); renderTime(); renderHabits(); renderCacheRows(); renderDates(); renderPipes(); if (openKey) detail(openKey); tick(); }
   /* ---------- cloud copy (phone): encrypted snapshot on GitHub, decrypted here ---------- */
   var CLOUD = /github\.io$/.test(location.hostname), DATA_URL = 'https://raw.githubusercontent.com/Burthcer/command-center-view/data/data.enc.json';
+  if (CLOUD) { var ml = document.createElement('link'); ml.rel = 'manifest'; ml.href = 'manifest.webmanifest'; document.head.appendChild(ml); }
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (x) {} }
   function stored(k) { try { return localStorage.getItem(k); } catch (x) { return null; } }
   function b64(x) { return Uint8Array.from(atob(x), function (c) { return c.charCodeAt(0); }); }
@@ -625,6 +679,7 @@ dialog::backdrop { background: rgba(5, 7, 12, .7); }
     el.style.display = 'block';
     el.innerHTML = 'Cloud copy · laptop last synced <b style="color:var(--text)">' + ago(S.__at) + '</b>' + (a > 3600 ? ' · the laptop is probably off, so this is how things were then' : '');
   }
+  $('ghq').addEventListener('input', function () { ghq = this.value; if (S) renderGh(); });
   $('keyform').addEventListener('submit', function (e) { e.preventDefault(); var v = $('keyin').value.trim().toLowerCase(); if (v) { store('hubk', v); lastEnvAt = 0; loadCloud(); } });
 
   function load() {
