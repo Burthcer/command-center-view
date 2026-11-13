@@ -310,6 +310,162 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
 #ghq:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .s-gh .rows { grid-template-columns: 1fr; max-height: 520px; overflow-y: auto; }
 @media (max-width: 900px) { .s-gh .rows { max-height: none; } }
+/* "New look" trial. Served on /v2 = index.html + this file on top. Same data, same buttons, same script.
+   Only looks change here. To drop the trial: delete this file, the /v2 route and the --v2 shortcut. */
+:root { --bg: #0a0d13; --line: #232a39; }
+html { scrollbar-color: #2a3244 transparent; }
+body { font-variant-numeric: tabular-nums; }
+
+/* top bar stays in view while scrolling */
+.wrap { padding-top: 0; gap: 20px; }
+.top { position: sticky; top: 0; z-index: 20; background: var(--bg); margin: 0 -24px; padding: 14px 24px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+.top > div:first-child { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+h1 { font-size: 22px; }
+.date { margin: 0; font-family: var(--body); font-size: 13px; }
+
+/* panels: told apart by shade, not by outlines */
+.block, .tile { border: 0; border-radius: 12px; }
+.block { padding: 20px; gap: 14px; }
+h2 { font-size: 18px; }
+.sec-h { align-items: center; }
+.note { max-width: 78ch; }
+
+/* glance row: three even tiles, live chats in a strip underneath instead of one tall tile */
+.pick { border-left: 3px solid var(--hot); justify-content: center; }
+.gauge { gap: 18px; margin-top: 10px; }
+.gauge svg { width: 112px; height: 112px; }
+.g-txt .sm { font-size: 12.5px; }
+/* every size above a phone: the cache tile always spans the full row (no empty half beside it) */
+@media (min-width: 601px) {
+  .glance { gap: 14px; }
+  .glance .tile { padding: 18px 20px; }
+  .glance .tile:last-child { grid-column: 1 / -1; display: grid; grid-template-columns: 220px minmax(0, 1fr); column-gap: 32px; align-content: start; grid-template-rows: auto auto auto 1fr; }
+  .glance .tile:last-child > * { grid-column: 1; }
+  #c-list { grid-column: 2; grid-row: 1 / span 4; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 32px; align-content: center; }
+  #c-list .lv { border: 0; margin: 0; padding: 6px 0; }
+}
+@media (min-width: 1101px) {
+  .glance { grid-template-columns: 1.5fr 1fr 1fr; }
+  .pick b { font-size: 28px; }
+  .bigtime { font-size: 46px; }
+}
+/* medium windows: gauges stack the ring over its text instead of squeezing it */
+@media (min-width: 601px) and (max-width: 760px) { .gauge { flex-direction: column; align-items: flex-start; } }
+/* phone and small tablet: top bar scrolls away with the page (it would eat too much of a small screen) */
+@media (max-width: 900px) {
+  .top { position: static; margin: 0; padding: 12px 0 0; border: 0; }
+  .wrap { gap: 12px; }
+  .block { padding: 14px 12px; gap: 10px; }
+}
+@media (max-width: 600px) { h1 { font-size: 21px; } .gauge svg { width: 88px; height: 88px; } .top > div:first-child { gap: 2px 12px; } }
+
+/* project cards */
+.grid { gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr)); }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 8px; } }
+.card, .cr { border: 1px solid transparent; }
+.card { padding: 16px; gap: 12px; border-radius: 12px; }
+.card:hover, .cr:hover { border-color: var(--edge, var(--accent)); }
+.ring { width: 56px; height: 56px; }
+.ring b { font-family: var(--body); font-weight: 600; font-size: 11.5px; }
+.name { font-size: 16.5px; }
+.spark { height: 34px; }
+.acts { border-top: 1px solid var(--line); gap: 4px; }
+.card .acts .btn:not(:first-child) { border-color: transparent; background: none; color: var(--muted); }
+.card .acts .btn:not(:first-child):hover { color: var(--text); background: var(--surface); }
+
+@media (min-width: 901px) {
+  /* filters as one joined control, the chosen one filled in */
+  .tabs { background: var(--surface-2); padding: 3px; border-radius: 9px; gap: 2px; align-self: flex-start; }
+  .tab { border: 0; background: none; border-radius: 7px; padding: 6px 11px; font-weight: 500; }
+  .tab:hover { color: var(--text); }
+  .tab[aria-pressed="true"] { background: var(--accent); color: #0d1017; font-weight: 600; }
+  /* time grid: bigger squares */
+  .share { height: 14px; }
+  .hm { gap: 6px; }
+  .hm-row, .hm-axis { grid-template-columns: 170px 1fr; }
+  .hm-cells { gap: 4px; }
+  .hm-cells i { height: 22px; border-radius: 4px; }
+  .hm-name { font-size: 13.5px; }
+  /* model usage: one line per model */
+  .mu { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px 150px; align-items: center; gap: 12px; padding: 6px 0; }
+  .mu-h { display: contents; }
+  .mu-h span { order: 1; font-weight: 600; }
+  .mu .bar { order: 2; margin: 0; height: 10px; }
+  .mu-h b { order: 3; text-align: right; }
+  .mu small { order: 4; text-align: right; }
+}
+/* GitHub: two columns, whole list visible, no box that scrolls inside the page */
+@media (min-width: 1101px) { .s-gh .rows { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; } }
+/* phone: keep the compact sizes */
+@media (max-width: 900px) { .ring { width: 50px; height: 50px; } .card { padding: 12px; gap: 8px; } }
+
+/* ---- round 8 ---- */
+/* the laptop page can mark and edit, so the "View only" chip is wrong there (it stays on the phone copy) */
+body.local .chip[title^="Nothing on this page"] { display: none; }
+/* phone: no CPU/RAM chip, so the top buttons fit on one line */
+@media (max-width: 600px) { #res { display: none; } }
+/* phone: limit tiles show two lines of the explanation; tap a tile for the rest (v2.js) */
+@media (max-width: 600px) {
+  .gauge .g-txt .sm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .tile.open .g-txt .sm { display: block; }
+}
+/* routines: name and buttons on one line, the week squares full width underneath */
+.hab { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.hab-l { flex: 1 1 150px; }
+.hab-b { width: auto; padding-top: 0; flex: 0 0 auto; }
+.hab-b .btn { padding: 4px 9px; }
+.week { width: 100%; grid-template-columns: repeat(7, 1fr); }
+/* model usage + week day by day side by side on wide screens (v2.js wraps them in .pair) */
+.pair { display: contents; }
+@media (min-width: 1101px) {
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+  .pair .mu { grid-template-columns: 90px minmax(0, 1fr) 44px; }
+  .pair .mu small { grid-column: 1 / -1; text-align: left; }
+}
+.week { order: 3; }
+/* wide windows: wider cards so project names are not cut off (medium windows keep two per row) */
+@media (min-width: 1101px) { .grid { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); } }
+
+/* ---- events, per-model limits, routines that tick themselves ---- */
+.mrow { display: grid; grid-template-columns: auto minmax(40px, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.mrow b { color: var(--text); font-weight: 600; }
+.mbar { height: 6px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.mbar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; }
+.cd[data-ev] { cursor: pointer; border-radius: 8px; transition: background .15s; }
+.cd[data-ev]:hover { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.prep { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5; }
+.prep h4 { margin: 12px 0 0; font-family: var(--display); font-size: 16px; }
+.prep p { margin: 0; } .prep ul, .prep ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 5px; }
+/* ---- motion: calm, once on open, plus hover and press feedback ---- */
+@property --p { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes sweep { from { stroke-dasharray: 0 999; } }
+@keyframes fillring { from { --p: 0%; } }
+@keyframes growy { from { transform: scaleY(0); } }
+@keyframes growx { from { transform: scaleX(0); } }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.97); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes breathe { 50% { opacity: .35; } }
+.card { transition: transform .18s ease, box-shadow .18s ease, background .12s, border-color .18s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0, 0, 0, .3); }
+.btn { transition: background .15s, border-color .15s, color .15s, transform .1s; }
+.btn:active { transform: scale(.96); }
+.tab { transition: background .15s, color .15s; }
+.hm-cells i { transition: transform .12s; } .hm-cells i:hover { transform: scale(1.3); }
+.live::before, .w .dot { animation: breathe 2s ease-in-out infinite; }
+#toast { transform: translate(-50%, 10px); transition: opacity .2s, transform .2s; } #toast.on { transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: no-preference) {
+  body.intro .glance .tile, body.intro .block { animation: rise .6s cubic-bezier(.2, .7, .2, 1) both; }
+  body.intro .glance .tile:nth-child(2) { animation-delay: .06s; } body.intro .glance .tile:nth-child(3) { animation-delay: .12s; } body.intro .glance .tile:nth-child(4) { animation-delay: .18s; }
+  body.intro .s-proj, body.intro .s-habits { animation-delay: .22s; } body.intro .s-time, body.intro .s-cache { animation-delay: .3s; } body.intro .s-dates, body.intro .s-gh { animation-delay: .38s; }
+  body.intro .gauge svg circle:nth-of-type(2) { animation: sweep 1s .25s cubic-bezier(.2, .7, .2, 1) both; }
+  body.intro .ring { animation: fillring 1s .3s cubic-bezier(.2, .7, .2, 1) both; }
+  body.intro .db i, body.intro .bars i { transform-origin: bottom; animation: growy .8s .4s cubic-bezier(.2, .7, .2, 1) both; }
+  body.intro .share i, body.intro .mu .bar i, body.intro .mbar i, body.intro #c-bar { transform-origin: left; animation: growx .9s .35s cubic-bezier(.2, .7, .2, 1) both; }
+  body.intro .hm-cells i { animation: fade .8s .5s both; }
+  #plist.swap .card, #plist.swap .cr { animation: rise .35s cubic-bezier(.2, .7, .2, 1) both; }
+  dialog[open] { animation: pop .22s cubic-bezier(.2, .7, .2, 1); } dialog[open]::backdrop { animation: fade .2s; }
+}
 </style>
 </head>
 <body>
@@ -519,11 +675,16 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     }).join('') + '<div class="hm-axis"><span></span><div><span>2 weeks ago</span><span>today</span></div></div>';
   }
   function dayLabel(back) { return ist(now() - back * 86400, { weekday: 'short', day: 'numeric', month: 'short' }); }
+  function habBtns(h) {
+    var b = function (v, t, g) { return '<button type="button" class="btn' + (g ? ' ghost' : '') + '" data-mark="habit&' + esc(h.id) + '&' + v + '">' + t + '</button>'; };
+    if (h.watch && h.watch.length) return h.skipped ? b('undo', 'Undo') : h.done ? '' : b('skip', 'Not today', 1);   // ticks itself; no manual Done
+    return h.done || h.skipped ? b('undo', 'Undo') : b('done', 'Done') + b('skip', 'Not today', 1);
+  }
   function renderHabits() {
     $('habits').innerHTML = (S.habits || []).map(function (h, hi) {
       var cells = h.week.map(function (d, i) { return '<div>' + esc(d.wd.charAt(0)) + '<i class="' + (d.done ? 'y' : '') + (i === 6 ? ' t' : '') + '" title="' + esc(d.d) + '">' + (d.done ? '✓' : '') + '</i></div>'; }).join('');
-      var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today';
-      var bt = LOCAL ? '<div class="hab-b">' + (h.done || h.skipped ? '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&undo">Undo</button>' : '<button type="button" class="btn" data-mark="habit&' + esc(h.id) + '&done">Done</button><button type="button" class="btn ghost" data-mark="habit&' + esc(h.id) + '&skip">Not today</button>') + '<button type="button" class="btn ghost" data-ef="habit:' + hi + '">Edit</button></div>' : '';
+      var st = h.done ? 'done' : h.skipped ? 'skipped today' : h.due ? 'not done yet' : 'not due today'; if (h.watch && h.watch.length) st += ' · ticks itself';
+      var bt = LOCAL ? '<div class="hab-b">' + habBtns(h) + '<button type="button" class="btn ghost" data-ef="habit:' + hi + '">Edit</button></div>' : '';
       return '<div class="hab ' + (h.done ? 'on' : h.due ? '' : 'off') + '"><div class="hab-l"><span class="bx">' + (h.done ? '✓' : '') + '</span><div><div class="hab-n">' + esc(h.name) + '</div><div class="hab-s">' + esc(h.every) + ' · ' + st + '</div></div></div><div class="week">' + cells + '</div>' + bt + '</div>';
     }).join('') || '<div class="empty">No routines set.</div>';
     $('habits').innerHTML += S.projects.filter(function (p) { return p.status === 'routine'; }).map(function (p) {
@@ -551,7 +712,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     }).join('') + '<div class="tl-names"><span>today</span><span>' + end + '</span></div></div>' : '';
     h += ds.map(function (d, i) {
       var big = d.active ? d.daysLeft + 'd' : d.daysTo + 'd', s = d.active ? 'left' : 'to start';
-      return '<div class="cd"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div><button type="button" class="btn ghost lo" style="margin-left:auto" data-ef="date:' + i + '">Edit</button></div>';
+      return '<div class="cd" data-ev="' + i + '" tabindex="0"><div class="big" style="color:' + cols[i % 4] + '">' + big + '<small>' + s + '</small></div><div><div class="t">' + esc(d.name) + '</div><div class="s">' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + (d.quiet ? ' · Claude keeps suggestions small' : '') + (d.prep ? ' · <b style="color:var(--accent);font-weight:600">prep notes ›</b>' : '') + '</div>' + (d.note ? '<div class="dnote">' + esc(d.note) + '</div>' : '') + '</div><button type="button" class="btn ghost lo" style="margin-left:auto" data-ef="date:' + i + '">Edit</button></div>';
     }).join('');
     h += '<div class="cd"><div class="big" id="rs-big" style="color:var(--sky)"></div><div><div class="t">Claude weekly limit resets</div><div class="s">Every Tuesday, 7:30 PM</div></div></div>';
     $('dates').innerHTML = h;
@@ -573,7 +734,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     var T = function (k, l, v, o) { return Object.assign({ k: k, l: l, v: v || '', t: 'text' }, o || {}); };
     if (c[0] === 'date') {
       var d = i === 'new' ? {} : S.dates[+i];
-      spec = { title: i === 'new' ? 'Add to Coming up' : 'Edit date', verb: 'dateSave', extra: { old: d.name || '' }, f: [T('name', 'What is it', d.name, { ph: 'e.g. LinkedIn post, exam, deadline' }), T('start', 'Starts', d.start, { t: 'date' }), T('end', 'Ends (leave empty for one day)', d.end, { t: 'date' }), T('note', 'Note (optional)', d.note, { ph: 'e.g. Not registered yet' }), T('quiet', 'Claude keeps suggestions small during this', d.quiet, { t: 'check' })], del: i === 'new' ? null : { verb: 'dateDel', extra: { name: d.name } } };
+      spec = { title: i === 'new' ? 'Add to Coming up' : 'Edit date', verb: 'dateSave', extra: { old: d.name || '' }, f: [T('name', 'What is it', d.name, { ph: 'e.g. LinkedIn post, exam, deadline' }), T('start', 'Starts', d.start, { t: 'date' }), T('end', 'Ends (leave empty for one day)', d.end, { t: 'date' }), T('note', 'Note (optional)', d.note, { ph: 'e.g. Not registered yet' }), T('prep', 'Prep notes file (optional): who to meet, what to ask', d.prepFile, { ph: 'C:\\Users\\Asus\\Desktop\\...\\event-prep.md' }), T('quiet', 'Claude keeps suggestions small during this', d.quiet, { t: 'check' })], del: i === 'new' ? null : { verb: 'dateDel', extra: { name: d.name } } };
     } else if (c[0] === 'pipe') {
       var p = i === 'new' ? { stages: [] } : S.pipelines[+i];
       spec = { title: i === 'new' ? 'Add a pipeline' : 'Edit pipeline', verb: 'pipeSave', extra: { id: p.id || '' }, f: [T('name', 'Name', p.name, { ph: 'e.g. Lecture to phone' }), T('stages', 'Stages in order, separated by commas', p.stages.join(', '), { ph: 'recording, transcript, note, on phone' })], del: i === 'new' ? null : { verb: 'pipeDel', extra: { id: p.id } } };
@@ -582,7 +743,7 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
       spec = { title: (c[2] === 'new' ? 'Add to ' : 'Move in ') + pl.name, verb: 'itemSave', extra: { pipe: pl.id, old: it.name || '' }, f: [T('name', 'Item', it.name, { ph: 'e.g. Lecture 12, DBMS' }), T('stage', 'Stage', it.stage || pl.stages[0], { t: 'select', o: pl.stages })], del: c[2] === 'new' ? null : { verb: 'itemDel', extra: { pipe: pl.id, name: it.name } } };
     } else {
       var hb = i === 'new' ? {} : S.habits[+i];
-      spec = { title: i === 'new' ? 'Add a routine' : 'Edit routine', verb: 'habitSave', extra: { id: hb.id || '' }, f: [T('name', 'Name', hb.name, { ph: 'e.g. Revise for 30 minutes' }), T('every', 'How often', hb.every || 'daily', { t: 'select', o: ['daily', 'weekdays', 'weekly'] })], del: i === 'new' ? null : { verb: 'habitDel', extra: { id: hb.id } } };
+      spec = { title: i === 'new' ? 'Add a routine' : 'Edit routine', verb: 'habitSave', extra: { id: hb.id || '' }, f: [T('name', 'Name', hb.name, { ph: 'e.g. Revise for 30 minutes' }), T('every', 'How often', hb.every || 'daily', { t: 'select', o: ['daily', 'weekdays', 'weekly'] }), T('watch', 'Ticks itself when this file is edited (optional; several: separate with ;)', (hb.watch || []).join('; '), { ph: 'C:\\Users\\Asus\\Desktop\\...\\log.md' })], del: i === 'new' ? null : { verb: 'habitDel', extra: { id: hb.id } } };
     }
     var f = spec.f.map(function (x) {
       if (x.t === 'check') return '<label class="ck"><input type="checkbox" name="' + x.k + '"' + (x.v ? ' checked' : '') + '> ' + esc(x.l) + '</label>';
@@ -621,6 +782,31 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     $('pick-why').textContent = why + ' Finished and abandoned projects are never suggested.';
   }
 
+  /* ---------- event details + prep notes ---------- */
+  function inl(x) { return esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+  function md(t) {   // tiny markdown: # title, ## heading, 1. / - lists, **bold**
+    var out = [], list = '';
+    String(t || '').split(/\r?\n/).forEach(function (ln) {
+      var m = /^\s*(\d+\.|[-*])\s+(.*)$/.exec(ln);
+      if (m) { var k = /\d/.test(m[1]) ? 'ol' : 'ul'; if (list !== k) { if (list) out.push('</' + list + '>'); out.push('<' + k + '>'); list = k; } out.push('<li>' + inl(m[2]) + '</li>'); return; }
+      if (list) { out.push('</' + list + '>'); list = ''; }
+      if ((m = /^(#+)\s*(.*)$/.exec(ln))) out.push(m[1].length > 1 ? '<h4>' + inl(m[2]) + '</h4>' : '<p class="muted">' + inl(m[2]) + '</p>');
+      else if (ln.trim()) out.push('<p>' + inl(ln) + '</p>');
+    });
+    if (list) out.push('</' + list + '>');
+    return out.join('');
+  }
+  function eventDetail(i) {
+    var d = (S.dates || [])[i]; if (!d) return;
+    var when = d.active ? (d.daysLeft ? 'on now, ' + d.daysLeft + ' more days' : 'today') : d.daysTo === 0 ? 'today' : d.daysTo === 1 ? 'tomorrow' : 'in ' + d.daysTo + ' days';
+    var b = '<div class="d-h"><h3>' + esc(d.name) + '</h3><button type="button" class="x" data-close aria-label="Close">×</button></div>';
+    b += '<div class="row"><b>When</b><div><span>' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + ' · <b style="color:var(--text)">' + when + '</b></span>' + (d.note ? '<span class="dnote">' + esc(d.note) + '</span>' : '') + '</div></div>';
+    b += '<div class="prep">' + (d.prep ? md(d.prep) : '<div class="empty">No prep notes linked yet. Ask Claude to write one for this event (who to meet, what to ask), then link its file with Edit.</div>') + '</div>';
+    if (LOCAL) b += '<div class="acts" style="border:0;padding:0"><button type="button" class="btn" data-ef="date:' + i + '">Edit event</button></div>';
+    $('dbody').innerHTML = b; openKey = null;
+    if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); $('dlg').focus(); }
+  }
+
   /* ---------- detail dialog ---------- */
   function detail(key) {
     var p = byKey(key); if (!p) return;
@@ -657,8 +843,9 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
+    var t = e.target.closest('[data-ev],[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
+    if (t.dataset.ev !== undefined) return eventDetail(+t.dataset.ev);
     if (t.dataset.ef) return editForm(t.dataset.ef);
     if (t.dataset.edel) { if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Click again to delete'; return; } sendEdit(JSON.parse(t.dataset.edel)).then(function () { $('dlg').close(); toast('Deleted'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; }); return; }
     if (t.dataset.close !== undefined) return $('dlg').close();
@@ -677,13 +864,14 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   });
 
   /* ---------- live (every second) ---------- */
-  function gauge(pct, mark, col, sub) {
+  function gauge(pct, mark, col, sub, approx) {
     var r = 36, C = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0)), a = (mark || 0) / 100 * 2 * Math.PI;
     // the tick spans only the ring's edge (radius 31 to 46); the number lives inside radius 22, so they cannot touch
     var m = mark == null ? '' : '<line x1="' + (50 + 31 * Math.sin(a)) + '" y1="' + (50 - 31 * Math.cos(a)) + '" x2="' + (50 + 46 * Math.sin(a)) + '" y2="' + (50 - 46 * Math.cos(a)) + '" stroke="#e8ebf3" stroke-width="3" stroke-linecap="round"><title>how much of the week has passed</title></line>';
     return '<svg viewBox="0 0 100 100" role="img" aria-label="' + (pct == null ? 'unknown' : Math.round(pct) + ' percent') + '"><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="#262d3d" stroke-width="8"/><circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + col + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + (v / 100 * C) + ' ' + C + '" transform="rotate(-90 50 50)"/>' + m +
-      '<text x="50" y="55" text-anchor="middle" class="gnum">' + (pct == null ? '?' : Math.round(pct) + '%') + '</text><text x="50" y="68" text-anchor="middle" class="gsub">' + sub + '</text></svg>';
+      '<text x="50" y="55" text-anchor="middle" class="gnum">' + (pct == null ? '?' : (approx ? '~' : '') + Math.round(pct) + '%') + '</text><text x="50" y="68" text-anchor="middle" class="gsub">' + sub + '</text></svg>';
   }
+  function put(id, h) { var e = $(id); if (e._h !== h) { e._h = h; e.innerHTML = h; } }
   function tick() {
     if (!S || S.loading || stopped) return;
     var n = now(), L = S.limit || {};
@@ -692,15 +880,18 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
     var fresh = n < L.resets; // after the reset time, an old snapshot's % no longer applies
     if (!fresh) { L = Object.assign({}, L, { pct: null, start: L.resets, resets: L.resets + 604800 }); }
     var gone = Math.max(0, Math.min(100, (n - L.start) / (L.resets - L.start) * 100)), over = L.pct != null && L.pct > gone + 5;
-    $('g-week').innerHTML = gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', 'used');
-    $('t-week').innerHTML = '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' +
-      (L.pct == null ? '' : over ? '<span class="pill" style="color:var(--warm);align-self:flex-start">Using it fast</span>' : '<span class="pill" style="color:var(--good);align-self:flex-start">Safe pace</span>') +
-      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? 'Claude\'s own last reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring adds what you used since.' : 'Rough guess.') + '</span>';
+    var stale = !!(L.real && fresh && n - L.real.at > 1200), pace = L.pct == null ? '' : over ? '<span class="pill" style="color:var(--warm);align-self:flex-start">Using it fast</span>' : '<span class="pill" style="color:var(--good);align-self:flex-start">Safe pace</span>';
+    put('g-week', gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', stale ? 'estimate' : 'used', stale));
+    var mrows = (L.real && fresh ? L.real.models || [] : []).map(function (x) { return '<span class="mrow"><span>' + esc(x.name.replace(/^Weekly[^A-Za-z]*/, '')) + ' weekly</span><span class="mbar"><i style="width:' + Math.min(100, x.pct) + '%"></i></span><b>' + Math.round(x.pct) + '%</b></span>'; }).join('');
+    put('t-week', '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' + pace +
+      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? (stale ? 'Claude\'s last real reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring is a guess since then.' : 'Claude\'s own reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '.') : 'Rough guess, no real reading yet this week.') + '</span>' + mrows);
     // 5 hour
-    var F = L.five;
-    if (F && F.active && F.resets > n) { $('g-five').innerHTML = gauge(F.pct, null, F.pct > 90 ? '#f87171' : F.pct > 70 ? '#f5b84a' : '#38bdf8', 'used'); $('t-five').innerHTML = '<span>Resets in <b>' + until(F.resets - n) + '</b></span><span class="sm">at ' + ist(F.resets, { hour: 'numeric', minute: '2-digit' }) + '.' + (L.real && L.real.five != null ? ' Claude\'s own last reading: <b>' + Math.round(L.real.five) + '%</b>, ' + ago(L.real.at) + '.' : '') + '</span>'; }
-    else if (F) { $('g-five').innerHTML = gauge(0, null, '#38bdf8', 'used'); $('t-five').innerHTML = '<span><b>Fresh</b></span><span class="sm">New 5 hours start with your next message.</span>'; }
-    else { $('g-five').innerHTML = gauge(null, null, '#38bdf8', ''); $('t-five').innerHTML = '<span class="sm">Not known yet. Claude fills it in at session start.</span>'; }
+    var F = L.five, fstale = !!(F && (F.guess || (L.real && n - L.real.at > 1200)));
+    if (F && F.active && F.resets > n) {
+      put('g-five', gauge(F.pct, null, F.pct > 90 ? '#f87171' : F.pct > 70 ? '#f5b84a' : '#38bdf8', fstale ? 'estimate' : 'used', fstale));
+      put('t-five', '<span>Resets in <b>' + until(F.resets - n) + '</b></span><span class="sm">at ' + ist(F.resets, { hour: 'numeric', minute: '2-digit' }) + '.' + (F.guess ? ' A new 5-hour window started after Claude\'s last reading, so this is a rough guess.' : '') + (L.real && L.real.five != null ? ' Claude\'s ' + (F.guess ? 'last' : 'own') + ' reading: <b>' + Math.round(L.real.five) + '%</b>, ' + ago(L.real.at) + '.' : '') + '</span>');
+    } else if (F) { put('g-five', gauge(0, null, '#38bdf8', 'used')); put('t-five', '<span><b>Fresh</b></span><span class="sm">New 5 hours start with your next message.</span>'); }
+    else { put('g-five', gauge(null, null, '#38bdf8', '')); put('t-five', '<span class="sm">Not known yet. Claude fills it in at session start.</span>'); }
     var rb = $('rs-big'); if (rb) rb.innerHTML = until(L.resets - n).split(' ')[0] + '<small>to reset</small>';
     // cache hero
     var warm = (S.cache || []).filter(function (c) { return c.expires > n; }), c0 = warm[0], live = (S.cache || []).filter(function (c) { return n - c.last < 90; });
@@ -812,6 +1003,35 @@ a.cr, a.cr * { text-decoration: none; color: inherit; } a.cr .lineage { color: v
   setInterval(function () { tick(); if (CLOUD) showSync(); }, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
 })();
+</script>
+<script>
+/* "New look" extras, run after the page. Layout and colour only; never touches data. */
+(function () {
+  var m = document.querySelector('.s-models'), d = document.querySelector('.s-days');
+  if (m && d) { var w = document.createElement('div'); w.className = 'pair'; m.parentNode.insertBefore(w, m); w.append(m, d); }
+  // phone: tap a limit tile to read the whole explanation
+  document.addEventListener('click', function (e) { var t = e.target.closest('.glance .tile'); if (t && t.querySelector('.gauge')) t.classList.toggle('open'); });
+  // Coming up: colour by kind (post / exam / event / other) instead of by position
+  function kind(n) { n = n.toLowerCase(); return /exam|test|viva/.test(n) ? 'var(--bad)' : /post|linkedin|dev\.to|article/.test(n) ? 'var(--accent)' : /hack|event|meet|fest|contest/.test(n) ? 'var(--warm)' : 'var(--teal)'; }
+  function paint() {
+    var box = document.getElementById('dates'); if (!box) return;
+    box.querySelectorAll('.cd').forEach(function (r) {
+      var big = r.querySelector('.big'), t = r.querySelector('.t'); if (!big || !t || big.id === 'rs-big') return;
+      var c = kind(t.textContent); big.style.color = c;
+      box.querySelectorAll('.tl-track i').forEach(function (b) { if (b.title === t.textContent) b.style.background = c; });
+    });
+  }
+  var box = document.getElementById('dates');
+  if (box) { new MutationObserver(paint).observe(box, { childList: true, subtree: true }); paint(); }
+})();
+
+// motion: things rise in once when the page opens; project cards re-rise when you switch tabs (never on the 3-second refresh)
+document.body.classList.add('intro');
+setTimeout(function () { document.body.classList.remove('intro'); }, 2200);
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.tab')) return;
+  var l = document.getElementById('plist'); l.classList.add('swap'); setTimeout(function () { l.classList.remove('swap'); }, 450);
+});
 </script>
 </body>
 </html>
