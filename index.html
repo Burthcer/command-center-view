@@ -466,6 +466,24 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
   #plist.swap .card, #plist.swap .cr { animation: rise .35s cubic-bezier(.2, .7, .2, 1) both; }
   dialog[open] { animation: pop .22s cubic-bezier(.2, .7, .2, 1); } dialog[open]::backdrop { animation: fade .2s; }
 }
+
+/* event notes as cards */
+.p-intro { color: var(--muted); font-size: 13.5px; line-height: 1.5; } .p-intro p { margin: 0 0 4px; }
+.pc { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pc header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pc h4 { margin: 0; font-family: var(--display); font-size: 17px; }
+.pc-role { font-size: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 2px 8px; border-radius: 4px; }
+.pc-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; font-size: 13.5px; line-height: 1.5; }
+.pc-row b { color: var(--muted); font-weight: 500; }
+.pc p { margin: 0; font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+.qs { list-style: none; margin: 4px 0 0; padding: 0; counter-reset: q; display: flex; flex-direction: column; gap: 6px; }
+.qs li { counter-increment: q; display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-size: 14px; line-height: 1.45; padding: 6px 8px; margin: 0 -8px; border-radius: 6px; transition: background .12s, opacity .15s; }
+.qs li:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.qs li::before { content: counter(q); flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; color: var(--muted); border: 1.5px solid var(--line); margin-top: 0; transition: background .15s, border-color .15s; }
+.qs.bl li::before { content: ''; border-radius: 6px; }
+.qs li.done { opacity: .5; text-decoration: line-through; }
+.qs li.done::before { content: '✓'; background: var(--accent); border-color: var(--accent); color: #0d1017; }
+@media (max-width: 600px) { .pc-row { grid-template-columns: 1fr; gap: 2px; } }
 </style>
 </head>
 <body>
@@ -475,6 +493,7 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
     <div class="top-r">
       <span class="chip" id="res" title="What the hub itself is using on this laptop right now"></span>
       <span class="chip" title="Nothing on this page can change your data. Only Claude writes.">View only</span>
+      <button class="chip lo" id="rfl" type="button" title="The page cannot read Claude's usage itself. This copies a one-line request to paste into any Claude chat.">Refresh limits</button>
       <button class="chip" id="plink" type="button" hidden>Phone link</button>
       <button class="chip" id="stop" type="button" hidden>Shut down</button>
     </div>
@@ -547,6 +566,7 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
   function until(s) { var m = Math.max(0, Math.floor(s / 60)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60); return d ? d + 'd ' + h + 'h' : h ? h + 'h ' + (m % 60) + 'm' : (m % 60) + 'm'; }
   function ago(ts) { if (!ts) return 'never'; var s = now() - ts; return s < 90 ? 'just now' : s < 3600 ? Math.floor(s / 60) + ' min ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + ' days ago'; }
   function ist(ts, o) { return new Date(ts * 1000).toLocaleString('en-IN', Object.assign({ timeZone: 'Asia/Kolkata' }, o)); }
+  function copyText(txt, msg) { (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { toast(msg); }, function () { toast('Copy failed'); }); }
   function toast(t) { var e = $('toast'); e.textContent = t; e.className = 'on'; clearTimeout(toast.t); toast.t = setTimeout(function () { e.className = ''; }, 2600); }
 
   /* ---------- project helpers ---------- */
@@ -784,24 +804,46 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
 
   /* ---------- event details + prep notes ---------- */
   function inl(x) { return esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
-  function md(t) {   // tiny markdown: # title, ## heading, 1. / - lists, **bold**
-    var out = [], list = '';
-    String(t || '').split(/\r?\n/).forEach(function (ln) {
-      var m = /^\s*(\d+\.|[-*])\s+(.*)$/.exec(ln);
-      if (m) { var k = /\d/.test(m[1]) ? 'ol' : 'ul'; if (list !== k) { if (list) out.push('</' + list + '>'); out.push('<' + k + '>'); list = k; } out.push('<li>' + inl(m[2]) + '</li>'); return; }
-      if (list) { out.push('</' + list + '>'); list = ''; }
-      if ((m = /^(#+)\s*(.*)$/.exec(ln))) out.push(m[1].length > 1 ? '<h4>' + inl(m[2]) + '</h4>' : '<p class="muted">' + inl(m[2]) + '</p>');
-      else if (ln.trim()) out.push('<p>' + inl(ln) + '</p>');
+  var LABEL = /^(context|who|did|why meet|why|say|opener|role|background|about)\s*:\s*(.*)$/i;
+  var LABEL_TXT = { context: 'Context', who: 'Who they are', did: 'What they did', 'why meet': 'Why meet', why: 'Why meet', say: 'Say', opener: 'Say', role: 'Role', background: 'Background', about: 'About' };
+  function prepHtml(text, ev) {   // notes file -> a card per ## section; Context:/Did:/Why meet: lines become labelled rows; list items can be ticked off
+    var intro = [], cards = [], cur = null, m;
+    String(text || '').split(/\r?\n/).forEach(function (ln) {
+      if ((m = /^##\s+(.*)$/.exec(ln))) { cur = { title: m[1].trim(), rows: [], paras: [], items: [], ord: false }; cards.push(cur); return; }
+      if (/^#\s/.test(ln)) { var t1 = ln.replace(/^#\s+/, ''); if (t1.toLowerCase().indexOf(ev.name.toLowerCase().slice(0, 18)) < 0) intro.push(t1); return; }
+      if (!ln.trim()) return;
+      if ((m = /^\s*(\d+\.|[-*])\s+(.*)$/.exec(ln))) {
+        if (!cur) { cur = { title: 'Notes', rows: [], paras: [], items: [], ord: false }; cards.push(cur); }
+        cur.items.push(m[2]); if (/\d/.test(m[1])) cur.ord = true; return;
+      }
+      var plain = ln.replace(/\*\*/g, '');
+      if (cur && (m = LABEL.exec(plain))) { cur.rows.push([LABEL_TXT[m[1].toLowerCase()], m[2]]); return; }
+      (cur ? cur.paras : intro).push(ln);
     });
-    if (list) out.push('</' + list + '>');
-    return out.join('');
+    var h = intro.length ? '<div class="p-intro">' + intro.map(function (x) { return '<p>' + inl(x) + '</p>'; }).join('') + '</div>' : '';
+    cards.forEach(function (c, ci) {
+      var tm = /^(.*?)\s*\((.*)\)\s*$/.exec(c.title), name = tm ? tm[1] : c.title, det = tm ? tm[2] : '', role = det && det.length <= 48 ? det : '';
+      var rows = (det && !role ? [['Context', det]] : []).concat(c.rows);
+      h += '<section class="pc"><header><h4>' + inl(name) + '</h4>' + (role ? '<span class="pc-role">' + inl(role) + '</span>' : '') + '</header>' +
+        rows.map(function (r) { return '<div class="pc-row"><b>' + esc(r[0]) + '</b><span>' + inl(r[1]) + '</span></div>'; }).join('') +
+        c.paras.map(function (x) { return '<p>' + inl(x) + '</p>'; }).join('') +
+        (c.items.length ? '<ul class="qs' + (c.ord ? '' : ' bl') + '">' + c.items.map(function (x, k) { var key = ev.name + '|' + ci + '|' + k; return '<li data-t="' + esc(key) + '" class="' + (stored('tick:' + key) ? 'done' : '') + '">' + inl(x) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
+    });
+    return h || '<div class="empty">The notes file is empty.</div>';
+  }
+  function evPrompt(d) {
+    var fmt = 'Follow the format in C:\\Users\\Asus\\Desktop\\central hub\\EVENT-NOTES-FORMAT.md exactly: one ## section per person with Context:, Did: and Why meet: lines, then numbered questions to ask.';
+    return d.prepFile
+      ? 'Improve the event notes in ' + d.prepFile + ' for "' + d.name + '" (' + d.start + '). For every person add who they are and what they did (real, checkable things only; say "not verified" if unsure) and why it is worth meeting them. ' + fmt
+      : 'Write event prep notes for "' + d.name + '" (' + d.start + (d.note ? ', ' + d.note : '') + '). Save them as a markdown file in the folder you work in, then tell me the full path so I can link it in my Command Center dashboard. ' + fmt;
   }
   function eventDetail(i) {
     var d = (S.dates || [])[i]; if (!d) return;
     var when = d.active ? (d.daysLeft ? 'on now, ' + d.daysLeft + ' more days' : 'today') : d.daysTo === 0 ? 'today' : d.daysTo === 1 ? 'tomorrow' : 'in ' + d.daysTo + ' days';
     var b = '<div class="d-h"><h3>' + esc(d.name) + '</h3><button type="button" class="x" data-close aria-label="Close">×</button></div>';
     b += '<div class="row"><b>When</b><div><span>' + esc(d.start) + (d.end ? ' to ' + esc(d.end) : '') + ' · <b style="color:var(--text)">' + when + '</b></span>' + (d.note ? '<span class="dnote">' + esc(d.note) + '</span>' : '') + '</div></div>';
-    b += '<div class="prep">' + (d.prep ? md(d.prep) : '<div class="empty">No prep notes linked yet. Ask Claude to write one for this event (who to meet, what to ask), then link its file with Edit.</div>') + '</div>';
+    b += '<div class="prep">' + (d.prep ? prepHtml(d.prep, d) : '<div class="empty">No notes linked yet. Copy the prompt below, paste it into the chat that knows about this event, then link the file it writes (Edit event).</div>') + '</div>';
+    b += '<div class="acts" style="border:0;padding:0"><button type="button" class="btn" data-copy="' + i + '">' + (d.prep ? 'Copy prompt: add more context' : 'Copy prompt for Claude') + '</button></div>';
     if (LOCAL) b += '<div class="acts" style="border:0;padding:0"><button type="button" class="btn" data-ef="date:' + i + '">Edit event</button></div>';
     $('dbody').innerHTML = b; openKey = null;
     if (!$('dlg').open) { document.documentElement.classList.add('lock'); $('dlg').showModal(); $('dlg').setAttribute('tabindex', '-1'); $('dlg').focus(); }
@@ -843,8 +885,10 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
   $('dlg').addEventListener('click', function (e) { if (e.target === $('dlg')) $('dlg').close(); });
 
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-ev],[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
+    var t = e.target.closest('[data-t],[data-copy],[data-ev],[data-ef],[data-edel],[data-open],[data-close],[data-gh],[data-tab],[data-more],[data-go],[data-mark],a,[data-key]');
     if (!t || t.tagName === 'A') return;
+    if (t.dataset.t !== undefined) { var on = t.classList.toggle('done'); store('tick:' + t.dataset.t, on ? '1' : null); return; }
+    if (t.dataset.copy !== undefined) return copyText(evPrompt(S.dates[+t.dataset.copy]), 'Prompt copied. Paste it into the chat.');
     if (t.dataset.ev !== undefined) return eventDetail(+t.dataset.ev);
     if (t.dataset.ef) return editForm(t.dataset.ef);
     if (t.dataset.edel) { if (!t.dataset.sure) { t.dataset.sure = '1'; t.textContent = 'Click again to delete'; return; } sendEdit(JSON.parse(t.dataset.edel)).then(function () { $('dlg').close(); toast('Deleted'); setTimeout(function () { sig = ''; load(); }, 500); }).catch(function (x) { $('ef-err').textContent = x.message; }); return; }
@@ -884,7 +928,7 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
     put('g-week', gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', stale ? 'estimate' : 'used', stale));
     var mrows = (L.real && fresh ? L.real.models || [] : []).map(function (x) { return '<span class="mrow"><span>' + esc(x.name.replace(/^Weekly[^A-Za-z]*/, '')) + ' weekly</span><span class="mbar"><i style="width:' + Math.min(100, x.pct) + '%"></i></span><b>' + Math.round(x.pct) + '%</b></span>'; }).join('');
     put('t-week', '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' + pace +
-      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? (stale ? 'Claude\'s last real reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring is a guess since then.' : 'Claude\'s own reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '.') : 'Rough guess, no real reading yet this week.') + '</span>' + mrows);
+      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? (stale ? 'Claude\'s last real reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring is a guess since then (Claude re-checks about every 30 minutes).' : 'Claude\'s own reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '.') : 'Rough guess, no real reading yet this week.') + '</span>' + mrows);
     // 5 hour
     var F = L.five, fstale = !!(F && (F.guess || (L.real && n - L.real.at > 1200)));
     if (F && F.active && F.resets > n) {
@@ -976,6 +1020,7 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
       showErr(e instanceof TypeError ? "Can't reach the hub · showing the last data · is the laptop on and Tailscale on? (open Command Center on the laptop to start the hub)" : 'Page error: ' + e.message);
     });
   }
+  $('rfl').addEventListener('click', function () { copyText('Refresh my Command Center limits now: call get_usage, then run "C:/Users/Asus/Desktop/central hub/app/hub.exe" limit <weekly %> <5-hour %> <5-hour resetsAt ISO> --model "Weekly Fable=<pct>". Reply with just the numbers.', 'Copied. Paste it into any Claude chat (about 10 seconds), or press Run now on the "Refresh Command Center limit numbers" task in the Claude app.'); });
   if (LOCAL) {
     $('plink').hidden = false;
     $('plink').addEventListener('click', function () {
