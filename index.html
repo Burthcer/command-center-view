@@ -928,7 +928,7 @@ body.local .chip[title^="Nothing on this page"] { display: none; }
     put('g-week', gauge(L.pct, gone, L.pct > 90 ? '#f87171' : over ? '#f5b84a' : '#8b7cff', stale ? 'estimate' : 'used', stale));
     var mrows = (L.real && fresh ? L.real.models || [] : []).map(function (x) { return '<span class="mrow"><span>' + esc(x.name.replace(/^Weekly[^A-Za-z]*/, '')) + ' weekly</span><span class="mbar"><i style="width:' + Math.min(100, x.pct) + '%"></i></span><b>' + Math.round(x.pct) + '%</b></span>'; }).join('');
     put('t-week', '<span>Resets in <b>' + until(L.resets - n) + '</b></span>' + pace +
-      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? (stale ? 'Claude\'s last real reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring is a guess since then (Claude re-checks about every 30 minutes).' : 'Claude\'s own reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '.') : 'Rough guess, no real reading yet this week.') + '</span>' + mrows);
+      '<span class="sm">White tick = week so far (' + Math.round(gone) + '%). ' + (L.real && fresh ? (stale ? 'Claude\'s last real reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '. The ring is a guess since then, until Claude is asked to re-check.' : 'Claude\'s own reading: <b>' + Math.round(L.real.week) + '%</b>, ' + ago(L.real.at) + '.') : 'Rough guess, no real reading yet this week.') + '</span>' + mrows);
     // 5 hour
     var F = L.five, fstale = !!(F && (F.guess || (L.real && n - L.real.at > 1200)));
     if (F && F.active && F.resets > n) {
